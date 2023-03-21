@@ -120,7 +120,7 @@ def main():
 
     def forward_backward_log(data_loader, step, prefix="train"):
         if args.dataset=='brats':
-            batch, extra, labels,_ , _ = next(data_loader)
+            batch, labels = next(data_loader)
             print('IS BRATS')
 
         elif  args.dataset=='chexpert':
