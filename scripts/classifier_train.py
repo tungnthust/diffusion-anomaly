@@ -126,7 +126,7 @@ def main():
     logger.log("training classifier model...")
 
 
-    def forward_backward_log(data_loader, step, prefix="train"):
+    def forward_backward_log(data_loader, prefix="train"):
         if args.dataset=='brats':
             batch, labels = next(data_loader)
             # print('IS BRATS')
@@ -202,10 +202,10 @@ def main():
             set_annealed_lr(opt, args.lr, (step + resume_step) / args.iterations)
         # print('step', step + resume_step)
         try:
-            losses = forward_backward_log(data, step + resume_step)
+            losses = forward_backward_log(data)
         except:
             data = iter(datal)
-            losses = forward_backward_log(data, step + resume_step)
+            losses = forward_backward_log(data)
 
         correct+=losses["train_acc@1"].sum()
         total+=args.batch_size
