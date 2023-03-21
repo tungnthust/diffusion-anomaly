@@ -141,6 +141,7 @@ def main():
         labels= labels.to(dist_util.dev())
         if args.noised:
             t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
+            print(f"{prefix}: batch_shape: {batch.shape} - noise_levels: {t}")
             batch = diffusion.q_sample(batch, t)
         else:
             t = th.zeros(batch.shape[0], dtype=th.long, device=dist_util.dev())
