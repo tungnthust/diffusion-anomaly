@@ -5,13 +5,11 @@ Train a noised image classifier on ImageNet.
 import argparse
 import os
 import sys
-from torch.autograd import Variable
 sys.path.append("..")
 sys.path.append(".")
 from guided_diffusion.bratsloader import BRATSDataset
 import blobfile as bf
 import torch as th
-os.environ['OMP_NUM_THREADS'] = '8'
 
 import torch.distributed as dist
 import torch.nn.functional as F
@@ -54,7 +52,7 @@ def main():
         schedule_sampler = create_named_schedule_sampler(
             args.schedule_sampler, diffusion, maxt=1000
         )
-
+    
     resume_step = 0
     if args.resume_checkpoint:
         resume_step = parse_resume_step_from_filename(args.resume_checkpoint)
@@ -75,7 +73,16 @@ def main():
         model=model, use_fp16=args.classifier_use_fp16, initial_lg_loss_scale=16.0
     )
 
-
+    
+    model = DDP(
+        model,
+        device_ids=[dist_util.dev()],
+        output_device=dist_util.dev(),
+        broadcast_buffers=False,
+        bucket_cap_mb=128,
+        find_unused_parameters=False,
+    )
+        
     logger.log("creating data loader...")
 
     if args.dataset == 'brats':
@@ -134,7 +141,6 @@ def main():
             split_microbatches(args.microbatch, batch, labels, t)
         ):
           
-            sub_batch = Variable(sub_batch, requires_grad=True)
             logits = model(sub_batch, timesteps=sub_t)
          
             loss = F.cross_entropy(logits, sub_labels, reduction="none")
@@ -148,7 +154,6 @@ def main():
             )
             print('acc', losses[f"{prefix}_acc@1"])
             log_loss_dict(diffusion, sub_t, losses)
-
             loss = loss.mean()
             if prefix=="train":
                 pass
