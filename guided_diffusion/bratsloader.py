@@ -27,4 +27,4 @@ class BRATSDataset(torch.utils.data.Dataset):
         return image, label
 
     def __len__(self):
-        return len(self.database)
+        return len(self.datapaths)
