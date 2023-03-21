@@ -23,8 +23,9 @@ class BRATSDataset(torch.utils.data.Dataset):
         mask = np.array(data['mask'])
         image = np.transpose(image, [2, 0, 1])
         label = 1 if np.sum(mask) > 0 else 0
-        
-        return image, label
+        padding_image = torch.zeros(4,256,256) + image[0][0][0]
+        padding_image[:,8:-8,8:-8] = image
+        return padding_image, label
 
     def __len__(self):
         return len(self.datapaths)
