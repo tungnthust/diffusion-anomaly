@@ -292,7 +292,7 @@ def parse_resume_step_from_filename(filename):
     Parse filenames of the form path/to/modelNNNNNN.pt, where NNNNNN is the
     checkpoint's number of steps.
     """
-    split = filename.split("model")
+    split = filename.split("modelbratsclass")
     if len(split) < 2:
         return 0
     split1 = split[-1].split(".")[0]
