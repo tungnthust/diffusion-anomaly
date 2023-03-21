@@ -163,25 +163,25 @@ def main():
             # print('acc', losses[f"{prefix}_acc@1"])
             log_loss_dict(diffusion, sub_t, losses)
             loss = loss.mean()
-            if prefix=="train":
-                pass
-#                 viz.line(X=th.ones((1, 1)).cpu() * step, Y=th.Tensor([loss]).unsqueeze(0).cpu(),
-#                      win=loss_window, name='loss_cls',
-#                      update='append')
+#             if prefix=="train":
+#                 pass
+# #                 viz.line(X=th.ones((1, 1)).cpu() * step, Y=th.Tensor([loss]).unsqueeze(0).cpu(),
+# #                      win=loss_window, name='loss_cls',
+# #                      update='append')
 
-            else:
+#             else:
 
-                output_idx = logits[0].argmax()
-                print('outputidx', output_idx)
-                output_max = logits[0, output_idx]
-                print('outmax', output_max, output_max.shape)
-                output_max.backward()
-                saliency, _ = th.max(sub_batch.grad.data.abs(), dim=1)
-                print('saliency', saliency.shape)
-#                 viz.heatmap(visualize(saliency[0, ...]))
-#                 viz.image(visualize(sub_batch[0, 0,...]))
-#                 viz.image(visualize(sub_batch[0, 1, ...]))
-                th.cuda.empty_cache()
+#                 output_idx = logits[0].argmax()
+#                 print('outputidx', output_idx)
+#                 output_max = logits[0, output_idx]
+#                 print('outmax', output_max, output_max.shape)
+#                 output_max.backward()
+#                 saliency, _ = th.max(sub_batch.grad.data.abs(), dim=1)
+#                 print('saliency', saliency.shape)
+# #                 viz.heatmap(visualize(saliency[0, ...]))
+# #                 viz.image(visualize(sub_batch[0, 0,...]))
+# #                 viz.image(visualize(sub_batch[0, 1, ...]))
+#                 th.cuda.empty_cache()
 
 
             if loss.requires_grad and prefix=="train":
