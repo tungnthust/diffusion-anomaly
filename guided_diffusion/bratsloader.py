@@ -9,7 +9,7 @@ from scipy import ndimage
 import h5py
 
 class BRATSDataset(torch.utils.data.Dataset):
-    def __init__(self, directory):
+    def __init__(self, directory, test_flag=False):
         
         super().__init__()
 
