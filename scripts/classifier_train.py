@@ -86,7 +86,7 @@ def main():
     logger.log("creating data loader...")
 
     if args.dataset == 'brats':
-        ds = BRATSDataset(args.data_dir, test_flag=False)
+        ds = BRATSDataset(args.data_dir, mode="train", test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
@@ -102,7 +102,15 @@ def main():
         )
         print('dataset is chexpert')
 
-
+    if args.val_data_dir:
+        val_ds = BRATSDataset(args.data_dir, mode="val", test_flag=False)
+        val_datal = th.utils.data.DataLoader(
+            val_ds,
+            batch_size=args.batch_size,
+            shuffle=True)
+        val_data = iter(val_datal)
+    else:
+        val_data = None
 
     logger.log(f"creating optimizer...")
     opt = AdamW(mp_trainer.master_params, lr=args.lr, weight_decay=args.weight_decay)
