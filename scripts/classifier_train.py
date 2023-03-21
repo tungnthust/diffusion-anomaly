@@ -121,14 +121,14 @@ def main():
     def forward_backward_log(data_loader, step, prefix="train"):
         if args.dataset=='brats':
             batch, labels = next(data_loader)
-            print('IS BRATS')
+            # print('IS BRATS')
 
         elif  args.dataset=='chexpert':
             batch, extra = next(data_loader)
             labels = extra["y"].to(dist_util.dev())
             print('IS CHEXPERT')
 
-        print('labels', labels)
+        # print('labels', labels)
         batch = batch.to(dist_util.dev())
         labels= labels.to(dist_util.dev())
         if args.noised:
@@ -149,10 +149,10 @@ def main():
             losses[f"{prefix}_acc@1"] = compute_top_k(
                 logits, sub_labels, k=1, reduction="none"
             )
-            losses[f"{prefix}_acc@2"] = compute_top_k(
-                logits, sub_labels, k=2, reduction="none"
-            )
-            print('acc', losses[f"{prefix}_acc@1"])
+            # losses[f"{prefix}_acc@2"] = compute_top_k(
+            #     logits, sub_labels, k=2, reduction="none"
+            # )
+            # print('acc', losses[f"{prefix}_acc@1"])
             log_loss_dict(diffusion, sub_t, losses)
             loss = loss.mean()
             if prefix=="train":
@@ -192,7 +192,7 @@ def main():
         )
         if args.anneal_lr:
             set_annealed_lr(opt, args.lr, (step + resume_step) / args.iterations)
-        print('step', step + resume_step)
+        # print('step', step + resume_step)
         try:
             losses = forward_backward_log(data, step + resume_step)
         except:
@@ -204,7 +204,13 @@ def main():
         acctrain=correct/total
 
         mp_trainer.optimize(opt)
-          
+        if val_data is not None and not step % args.eval_interval:
+            with th.no_grad():
+                with model.no_sync():
+                    model.eval()
+                    forward_backward_log(val_data, prefix="val")
+                    model.train()
+
         if not step % args.log_interval:
             logger.dumpkvs()
         if (
@@ -265,9 +271,9 @@ def create_argparser():
         microbatch=-1,
         schedule_sampler="uniform",
         resume_checkpoint="",
-        log_interval=1,
+        log_interval=10,
         eval_interval=1000,
-        save_interval=5000,
+        save_interval=10000,
         dataset='brats'
     )
     defaults.update(classifier_and_diffusion_defaults())
