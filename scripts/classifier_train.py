@@ -220,6 +220,7 @@ def main():
                     model.train()
 
         if not step % args.log_interval:
+            print('step', step + resume_step)
             logger.dumpkvs()
         if (
             step
