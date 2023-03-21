@@ -14,7 +14,7 @@ class BRATSDataset(torch.utils.data.Dataset):
         
         super().__init__()
 
-        self.datapaths = [p for p in Path(f'{image_paths}').glob(f'**/*.h5')]
+        self.datapaths = [p for p in Path(f'{directory}').glob(f'**/*.h5')]
 
        
     def __getitem__(self, idx):
