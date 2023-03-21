@@ -50,7 +50,7 @@ def main():
     model.to(dist_util.dev())
     if args.noised:
         schedule_sampler = create_named_schedule_sampler(
-            args.schedule_sampler, diffusion, maxt=1000
+            args.schedule_sampler, diffusion, maxt=args.max_L
         )
     
     resume_step = 0
@@ -283,7 +283,8 @@ def create_argparser():
         log_interval=10,
         eval_interval=1000,
         save_interval=10000,
-        dataset='brats'
+        dataset='brats',
+        max_L=1000,
     )
     defaults.update(classifier_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
