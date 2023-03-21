@@ -17,7 +17,7 @@ class BRATSDataset(torch.utils.data.Dataset):
         paths = [p for p in Path(f'{directory}').glob(f'**/*.h5')]
         self.datapaths = []
         for path in paths:
-            volume_idx = int(str(paths[0]).split('/')[-1].split('_')[1])
+            volume_idx = int(str(path).split('/')[-1].split('_')[1])
             if mode == "val" and volume_idx >= 295:
                 self.datapaths.append(path)
             if mode == "train" and volume_idx < 295:
