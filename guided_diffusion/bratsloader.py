@@ -7,6 +7,7 @@ import os.path
 import nibabel
 from scipy import ndimage
 import h5py
+from pathlib import Path
 
 class BRATSDataset(torch.utils.data.Dataset):
     def __init__(self, directory, test_flag=False):
