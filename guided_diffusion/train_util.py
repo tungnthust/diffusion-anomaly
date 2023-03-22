@@ -190,9 +190,6 @@ class TrainLoop:
         # Save the last checkpoint if it wasn't already saved.
         if (self.step - 1) % self.save_interval != 0:
             self.save()
-        del batch
-        del cond
-        th.cuda.empty_cache()
 
     def run_step(self, batch, cond):
         self.forward_backward(batch, cond)
