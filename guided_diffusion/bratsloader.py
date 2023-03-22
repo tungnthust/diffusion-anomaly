@@ -8,7 +8,7 @@ import nibabel
 from scipy import ndimage
 import h5py
 from pathlib import Path
-
+from sklearn.preprocessing import MinMaxScaler
 class BRATSDataset(torch.utils.data.Dataset):
     def __init__(self, directory, mode="train", test_flag=False):
         
@@ -25,12 +25,14 @@ class BRATSDataset(torch.utils.data.Dataset):
                 self.datapaths.append(path)
 
     def __getitem__(self, idx):
+        scaler = MinMaxScaler()
         data = h5py.File(self.datapaths[idx], 'r')
         image = np.array(data['image'])
         mask = np.array(data['mask'])
+        image = scaler.fit_transform(image.reshape(-1, image.shape[-1])).reshape(image.shape)
         image = np.transpose(image, [2, 0, 1])
         label = 1 if np.sum(mask) > 0 else 0
-        padding_image = np.zeros((4,256,256)) + image[0][0][0]
+        padding_image = np.zeros((4,256,256)) + np.broadcast_to(image[:, 0, 0][:, np.newaxis, np.newaxis], (4, 256, 256))
         padding_image[:,8:-8,8:-8] = image
         cond = {}
         cond['y'] = label
