@@ -1040,7 +1040,7 @@ class GaussianDiffusion:
 
 
    # def training_losses(self, model, x_start, t, model_kwargs=None, noise=None):
-    def training_losses(self, model,  x_start, t, classifier=None, model_kwargs=None, noise=None):
+    def training_losses(self, model,  x_start, t, model_kwargs=None, noise=None):
         """
         Compute training losses for a single timestep.
         :param model: the model to evaluate loss on.
@@ -1112,7 +1112,7 @@ class GaussianDiffusion:
         else:
             raise NotImplementedError(self.loss_type)
 
-        return (terms, model_output)
+        return terms
 
 
   

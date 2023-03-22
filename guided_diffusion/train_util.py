@@ -191,13 +191,12 @@ class TrainLoop:
             self.save()
 
     def run_step(self, batch, cond):
-        lossmse,  sample = self.forward_backward(batch, cond)
+        self.forward_backward(batch, cond)
         took_step = self.mp_trainer.optimize(self.opt)
         if took_step:
             self._update_ema()
         self._anneal_lr()
         self.log_step()
-        return lossmse,  sample
 
     def forward_backward(self, batch, cond):
         self.mp_trainer.zero_grad()
@@ -220,29 +219,23 @@ class TrainLoop:
             )
 
             if last_batch or not self.use_ddp:
-                losses1 = compute_losses()
+                losses = compute_losses()
 
             else:
                 with self.ddp_model.no_sync():
-                    losses1 = compute_losses()
+                    losses = compute_losses()
 
             if isinstance(self.schedule_sampler, LossAwareSampler):
                 self.schedule_sampler.update_with_local_losses(
                     t, losses["loss"].detach()
                 )
-            losses = losses1[0]
-            sample = losses1[1]
 
             loss = (losses["loss"] * weights).mean()
-
-            lossmse = (losses["mse"] * weights).mean().detach()
            
             log_loss_dict(
                 self.diffusion, t, {k: v * weights for k, v in losses.items()}
             )
             self.mp_trainer.backward(loss)
-
-            return lossmse.detach(),  sample
 
     def _update_ema(self):
         for rate, params in zip(self.ema_rate, self.ema_params):
