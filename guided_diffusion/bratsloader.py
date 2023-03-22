@@ -18,9 +18,10 @@ class BRATSDataset(torch.utils.data.Dataset):
         self.datapaths = []
         for path in paths:
             volume_idx = int(str(path).split('/')[-1].split('_')[1])
-            if mode == "val" and volume_idx >= 295:
+            slice_idx = int(str(path).split('/')[-1].split('_')[3].split('.')[0])
+            if (mode == "val") and (volume_idx > 52 and volume_idx <= 88) and (slice_idx >= 80 and slice_idx <= 128):
                 self.datapaths.append(path)
-            if mode == "train" and volume_idx < 295:
+            if (mode == "train") and (volume_idx <= 52 or volume_idx > 88) and (slice_idx >= 80 and slice_idx <= 128):
                 self.datapaths.append(path)
 
     def __getitem__(self, idx):
