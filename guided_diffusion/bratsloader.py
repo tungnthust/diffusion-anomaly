@@ -26,7 +26,6 @@ class BRATSDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         scaler = MinMaxScaler()
-        print("TT")
         data = h5py.File(self.datapaths[idx], 'r')
         image = np.array(data['image'])
         mask = np.array(data['mask'])
@@ -37,6 +36,7 @@ class BRATSDataset(torch.utils.data.Dataset):
         padding_image[:,8:-8,8:-8] = image
         cond = {}
         cond['y'] = label
+        print(padding_image.min(), padding_image.max())
         return np.float32(padding_image), cond, label
 
     def __len__(self):
