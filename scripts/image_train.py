@@ -69,7 +69,8 @@ def main():
         schedule_sampler=schedule_sampler,
         weight_decay=args.weight_decay,
         lr_anneal_steps=args.lr_anneal_steps,
-        dataset=args.dataset
+        dataset=args.dataset,
+        max_L=args.max_L
     ).run_loop()
 
 
@@ -83,12 +84,13 @@ def create_argparser():
         batch_size=1,
         microbatch=-1,  # -1 disables microbatches
         ema_rate="0.9999",  # comma-separated list of EMA values
-        log_interval=100,
+        log_interval=10,
         save_interval=10000,
         resume_checkpoint='',
         use_fp16=False,
         fp16_scale_growth=1e-3,
         dataset='brats',
+        max_L=1000
     )
     defaults.update(model_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
