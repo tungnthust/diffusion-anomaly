@@ -26,6 +26,7 @@ class BRATSDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         scaler = MinMaxScaler()
+        print("TT")
         data = h5py.File(self.datapaths[idx], 'r')
         image = np.array(data['image'])
         mask = np.array(data['mask'])
