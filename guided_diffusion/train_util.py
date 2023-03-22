@@ -186,9 +186,13 @@ class TrainLoop:
                 if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
                     return
             self.step += 1
+        
         # Save the last checkpoint if it wasn't already saved.
         if (self.step - 1) % self.save_interval != 0:
             self.save()
+        del batch
+        del cond
+        th.cuda.empty_cache()
 
     def run_step(self, batch, cond):
         self.forward_backward(batch, cond)
