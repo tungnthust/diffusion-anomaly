@@ -42,21 +42,21 @@ def main():
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
-    # if args.dataset=='brats':
-    #   ds = BRATSDataset(args.data_dir, mode="val", test_flag=True)
-    #   datal = th.utils.data.DataLoader(
-    #     ds,
-    #     batch_size=args.batch_size,
-    #     shuffle=False)
+    if args.dataset=='brats':
+      ds = BRATSDataset(args.data_dir, mode="val", test_flag=True)
+      datal = th.utils.data.DataLoader(
+        ds,
+        batch_size=args.batch_size,
+        shuffle=False)
     
-    # elif args.dataset=='chexpert':
-    #  data = load_data(
-    #      data_dir=args.data_dir,
-    #      batch_size=args.batch_size,
-    #      image_size=args.image_size,
-    #      class_cond=True,
-    #  )
-    #  datal = iter(data)
+    elif args.dataset=='chexpert':
+     data = load_data(
+         data_dir=args.data_dir,
+         batch_size=args.batch_size,
+         image_size=args.image_size,
+         class_cond=True,
+     )
+     datal = iter(data)
     model.to(dist_util.dev())
     print(args.model_path)
     model.load_state_dict(
