@@ -9,6 +9,8 @@ from scipy import ndimage
 import h5py
 from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler
+import pickle
+
 class BRATSDataset(torch.utils.data.Dataset):
     def __init__(self, directory, mode="train", test_flag=False):
         
