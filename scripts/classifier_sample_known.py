@@ -59,7 +59,7 @@ def main():
     #  datal = iter(data)
    
     model.load_state_dict(
-        dist_util.load_state_dict(args.model_path, map_location="cpu")
+        dist_util.load_state_dict(args.model_path, map_location=dist_util.dev())
     )
     model.to(dist_util.dev())
     if args.use_fp16:
