@@ -137,6 +137,8 @@ class Downsample(nn.Module):
         
         super().__init__()
         out_channels = out_channels if out_channels else channels
+        self.dwt = DWT_2D("haar")
+
         self.weight = nn.Parameter(th.zeros(out_channels, channels * 4, 3, 3))
         self.weight.data = default_init()(self.weight.data.shape)
         self.bias = nn.Parameter(th.zeros(out_channels))

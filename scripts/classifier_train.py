@@ -85,6 +85,7 @@ def main():
     )
         
     logger.log("creating data loader...")
+    dwt = DWT_2D("haar")
 
     if args.dataset == 'brats':
         ds = BRATSDataset(args.data_dir, mode="train", test_flag=False)
@@ -131,7 +132,7 @@ def main():
         if args.dataset=='brats':
             batch, cond, labels, _ = next(data_loader)
             if th.cuda.is_available():
-                batchLL, batchLH, batchHL, batchHH = DWT_2D(th.Tensor(batch).cuda())
+                batchLL, batchLH, batchHL, batchHH = dwt(th.Tensor(batch).cuda())
                 batch = th.cat((batchLL, batchLH, batchHL, batchHH), dim=1) / 2.0
             # print('IS BRATS')
 

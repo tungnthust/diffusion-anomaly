@@ -67,6 +67,7 @@ class TrainLoop:
         self.schedule_sampler = schedule_sampler or UniformSampler(diffusion, maxt=max_L)
         self.weight_decay = weight_decay
         self.lr_anneal_steps = lr_anneal_steps
+        self.dwt = DWT_2D("haar")
 
         self.step = 0
         self.resume_step = 0
@@ -171,13 +172,13 @@ class TrainLoop:
                 try:
                     batch, cond, label, _ = next(self.iterdatal)
                     if th.cuda.is_available():
-                        batchLL, batchLH, batchHL, batchHH = DWT_2D(th.Tensor(batch).cuda())
+                        batchLL, batchLH, batchHL, batchHH = self.dwt(th.Tensor(batch).cuda())
                         batch = th.cat((batchLL, batchLH, batchHL, batchHH), dim=1) / 2.0
                 except:
                     self.iterdatal = iter(self.datal)
                     batch, cond, label, _ = next(self.iterdatal)
                     if th.cuda.is_available():
-                        batchLL, batchLH, batchHL, batchHH = DWT_2D(th.Tensor(batch).cuda())
+                        batchLL, batchLH, batchHL, batchHH = self.dwt(th.Tensor(batch).cuda())
                         batch = th.cat((batchLL, batchLH, batchHL, batchHH), dim=1) / 2.0
             elif self.dataset=='chexpert':
                 batch, cond = next(self.datal)
