@@ -349,7 +349,7 @@ class GaussianDiffusion:
         }
   
     def _predict_xstart_from_eps(self, x_t, t, eps):
-        x_t = x_t[:, :4, ...]
+        x_t = x_t[:, :16, ...]
         assert x_t.shape == eps.shape
         return (
             _extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t
@@ -521,7 +521,7 @@ class GaussianDiffusion:
             denoised_fn=denoised_fn,
             model_kwargs=model_kwargs,
         )
-        noise = th.randn_like(x[:, :4, ...])
+        noise = th.randn_like(x[:, :16, ...])
         nonzero_mask = (
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
         )  # no noise when t == 0
@@ -561,9 +561,9 @@ class GaussianDiffusion:
         org=img[0].to(device)
         img=img[0].to(device)
         indices = list(range(t))[::-1]
-        noise = th.randn_like(img[:, :4, ...]).to(device)
-        x_noisy = self.q_sample(x_start=img[:, :4, ...], t=t, noise=noise).to(device)
-        x_noisy = torch.cat((x_noisy, img[:, 4:, ...]), dim=1)
+        noise = th.randn_like(img[:, :16, ...]).to(device)
+        x_noisy = self.q_sample(x_start=img[:, :16, ...], t=t, noise=noise).to(device)
+        x_noisy = torch.cat((x_noisy, img[:, 16:, ...]), dim=1)
         
         
         for sample in self.p_sample_loop_progressive(
