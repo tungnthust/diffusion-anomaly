@@ -14,7 +14,7 @@ from .nn import update_ema
 from .resample import LossAwareSampler, UniformSampler
 # from visdom import Visdom
 # viz = Visdom(port=8850)
-from wavelet_util import DWT_2D
+from .wavelet_util import DWT_2D
 
 INITIAL_LOG_LOSS_SCALE = 20.0
 
