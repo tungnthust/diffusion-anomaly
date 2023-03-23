@@ -111,8 +111,8 @@ def main():
      #   img = next(data)  # should return an image from the dataloader "data"
         print('img', img[0].shape, img[1])
         if args.dataset=='brats':
-          Labelmask = th.where(img[2] > 0, 1, 0)
-          number=img[4][0]
+        #   Labelmask = th.where(img[2] > 0, 1, 0)
+        #   number=img[4][0]
           if img[2]==0:
               continue    #take only diseased images as input
               
