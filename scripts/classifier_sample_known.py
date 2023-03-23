@@ -58,6 +58,7 @@ def main():
     #  )
     #  datal = iter(data)
     model.to(dist_util.dev())
+    print(args.model_path)
     model.load_state_dict(
         dist_util.load_state_dict(args.model_path, map_location=dist_util.dev())
     )
