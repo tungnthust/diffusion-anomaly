@@ -14,7 +14,10 @@ class BRATSDataset(torch.utils.data.Dataset):
         
         super().__init__()
         
-        paths = [p for p in Path(f'{directory}').glob(f'**/*.h5')]
+#         paths = [p for p in Path(f'{directory}').glob(f'**/*.h5')]
+        paths = []
+        with open('/kaggle/working/diffusion-anomaly/data/data_paths.pickle', 'rb') as fp:
+            paths = pickle.load(fp)
         self.datapaths = []
         for path in paths:
             volume_idx = int(str(path).split('/')[-1].split('_')[1])

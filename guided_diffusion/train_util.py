@@ -168,10 +168,10 @@ class TrainLoop:
         ):
             if self.dataset=='brats':
                 try:
-                    batch, cond, label = next(self.iterdatal)
+                    batch, cond, label, _ = next(self.iterdatal)
                 except:
                     self.iterdatal = iter(self.datal)
-                    batch, cond, label = next(self.iterdatal)
+                    batch, cond, label, _ = next(self.iterdatal)
             elif self.dataset=='chexpert':
                 batch, cond = next(self.datal)
                 cond.pop("path", None)
