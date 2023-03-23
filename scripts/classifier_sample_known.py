@@ -153,7 +153,8 @@ def main():
         th.cuda.synchronize()
         th.cuda.current_stream().synchronize()
 
-
+        sample = sample.cpu()
+        org = org.cpu()
         print('time for 1000', start.elapsed_time(end))
 
         if args.dataset=='brats':
