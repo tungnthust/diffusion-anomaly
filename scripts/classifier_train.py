@@ -10,6 +10,7 @@ sys.path.append(".")
 from guided_diffusion.bratsloader import BRATSDataset
 import blobfile as bf
 import torch as th
+from wavelet_util import DWT_2D
 
 import torch.distributed as dist
 import torch.nn.functional as F
@@ -128,7 +129,10 @@ def main():
 
     def forward_backward_log(data_loader, prefix="train"):
         if args.dataset=='brats':
-            batch, _, labels, _ = next(data_loader)
+            batch, cond, labels, _ = next(data_loader)
+            if th.cuda.is_available():
+                batchLL, batchLH, batchHL, batchHH = DWT_2D(th.Tensor(batch).cuda())
+                batch = th.cat((batchLL, batchLH, batchHL, batchHH), dim=1) / 2.0
             # print('IS BRATS')
 
         elif  args.dataset=='chexpert':

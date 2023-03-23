@@ -5,6 +5,7 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
+from wavelet_util import DWT_2D
 
 from .fp16_util import convert_module_to_f16, convert_module_to_f32
 from .nn import (
@@ -120,24 +121,78 @@ class Downsample(nn.Module):
     """
 
     def __init__(self, channels, use_conv, dims=2, out_channels=None):
+        # super().__init__()
+        # self.channels = channels
+        # self.out_channels = out_channels or channels
+        # self.use_conv = use_conv
+        # self.dims = dims
+        # stride = 2 if dims != 3 else (1, 2, 2)
+        # if use_conv:
+        #     self.op = conv_nd(
+        #         dims, self.channels, self.out_channels, 3, stride=stride, padding=1
+        #     )
+        # else:
+        #     assert self.channels == self.out_channels
+        #     self.op = avg_pool_nd(dims, kernel_size=stride, stride=stride)
+        
         super().__init__()
-        self.channels = channels
-        self.out_channels = out_channels or channels
-        self.use_conv = use_conv
-        self.dims = dims
-        stride = 2 if dims != 3 else (1, 2, 2)
-        if use_conv:
-            self.op = conv_nd(
-                dims, self.channels, self.out_channels, 3, stride=stride, padding=1
-            )
-        else:
-            assert self.channels == self.out_channels
-            self.op = avg_pool_nd(dims, kernel_size=stride, stride=stride)
+        out_channels = out_channels if out_channels else channels
+        self.weight = nn.Parameter(th.zeros(out_channels, channels * 4, 3, 3))
+        self.weight.data = default_init()(self.weight.data.shape)
+        self.bias = nn.Parameter(th.zeros(out_channels))
+
+        self.dwt = DWT_2D("haar")
 
     def forward(self, x):
-        assert x.shape[1] == self.channels
-        return self.op(x)
+        # assert x.shape[1] == self.channels
+        # return self.op(x)
 
+        xLL, xLH, xHL, xHH = self.dwt(x)
+
+        x = th.cat((xLL, xLH, xHL, xHH), dim=1) / 2.0
+
+        x = F.conv2d(x, self.weight, stride=1, padding=1)
+        x = x + self.bias.reshape(1, -1, 1, 1)
+        return x
+    
+def variance_scaling(scale, mode, distribution,
+                     in_axis=1, out_axis=0,
+                     dtype=th.float32,
+                     device='cpu'):
+    """Ported from JAX. """
+
+    def _compute_fans(shape, in_axis=1, out_axis=0):
+        receptive_field_size = np.prod(shape) / shape[in_axis] / shape[out_axis]
+        fan_in = shape[in_axis] * receptive_field_size
+        fan_out = shape[out_axis] * receptive_field_size
+        return fan_in, fan_out
+
+    def init(shape, dtype=dtype, device=device):
+        fan_in, fan_out = _compute_fans(shape, in_axis, out_axis)
+        if mode == "fan_in":
+            denominator = fan_in
+        elif mode == "fan_out":
+            denominator = fan_out
+        elif mode == "fan_avg":
+            denominator = (fan_in + fan_out) / 2
+        else:
+            raise ValueError(
+                "invalid mode for variance scaling initializer: {}".format(mode))
+        variance = scale / denominator
+        if distribution == "normal":
+            return th.randn(*shape, dtype=dtype, device=device) * np.sqrt(variance)
+        elif distribution == "uniform":
+            return (th.rand(*shape, dtype=dtype, device=device) * 2. - 1.) * np.sqrt(3 * variance)
+        else:
+            raise ValueError("invalid distribution for variance scaling initializer")
+
+    return init
+
+
+def default_init(scale=1.):
+    """The same initialization used in DDPM."""
+    scale = 1e-10 if scale == 0 else scale
+    return variance_scaling(scale, 'fan_avg', 'uniform')
 
 class ResBlock(TimestepBlock):
     """
