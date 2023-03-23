@@ -36,7 +36,7 @@ class BRATSDataset(torch.utils.data.Dataset):
         padding_image[:,8:-8,8:-8] = image
         cond = {}
         cond['y'] = label
-        return np.float32(padding_image), cond, label
+        return np.float32(padding_image), cond, label, np.float32(np.sum(mask, axis=2))
 
     def __len__(self):
         return len(self.datapaths)

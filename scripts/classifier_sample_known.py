@@ -43,7 +43,7 @@ def main():
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
     if args.dataset=='brats':
-      ds = BRATSDataset(args.data_dir, test_flag=True)
+      ds = BRATSDataset(args.data_dir, mode="val", test_flag=True)
       datal = th.utils.data.DataLoader(
         ds,
         batch_size=args.batch_size,
@@ -110,7 +110,7 @@ def main():
      #   img = next(data)  # should return an image from the dataloader "data"
         print('img', img[0].shape, img[1])
         if args.dataset=='brats':
-          Labelmask = th.where(img[3] > 0, 1, 0)
+          Labelmask = th.where(img[2] > 0, 1, 0)
           number=img[4][0]
           if img[2]==0:
               continue    #take only diseased images as input
@@ -119,7 +119,7 @@ def main():
 #           viz.image(visualize(img[0][0, 1, ...]), opts=dict(caption="img input 1"))
 #           viz.image(visualize(img[0][0, 2, ...]), opts=dict(caption="img input 2"))
 #           viz.image(visualize(img[0][0, 3, ...]), opts=dict(caption="img input 3"))
-#           viz.image(visualize(img[3][0, ...]), opts=dict(caption="ground truth"))
+#           viz.image(visualize(img[2][0, ...]), opts=dict(caption="ground truth"))
         else:
 #           viz.image(visualize(img[0][0, ...]), opts=dict(caption="img input"))
           print('img1', img[1])
@@ -156,11 +156,33 @@ def main():
         print('time for 1000', start.elapsed_time(end))
 
         if args.dataset=='brats':
+           difftot=abs(org[0, :4,...]-sample[0, ...]).sum(dim=0)
+
+           plt.figure(figsize=(12, 8))
+
+           plt.subplot(231)
+           plt.imshow(visualize(sample[0,0, ...]), cmap='gray')
+           plt.title('Image flair')
+           plt.subplot(232)
+           plt.imshow(visualize(sample[0,1, ...]), cmap='gray')
+           plt.title('Image t1')
+           plt.subplot(233)
+           plt.imshow(visualize(sample[0,2, ...]), cmap='gray')
+           plt.title('Image t1ce')
+           plt.subplot(234)
+           plt.imshow(visualize(sample[0,3, ...]), cmap='gray')
+           plt.title('Image t2')
+           plt.subplot(235)
+           plt.imshow(visualize(difftot))
+           plt.title('Prediction')
+           plt.subplot(235)
+           plt.imshow(visualize(img[3][0, ...]))
+           plt.title('Groundtruth')
+           plt.show()
 #           viz.image(visualize(sample[0,0, ...]), opts=dict(caption="sampled output0"))
 #           viz.image(visualize(sample[0,1, ...]), opts=dict(caption="sampled output1"))
 #           viz.image(visualize(sample[0,2, ...]), opts=dict(caption="sampled output2"))
 #           viz.image(visualize(sample[0,3, ...]), opts=dict(caption="sampled output3"))
-          difftot=abs(org[0, :4,...]-sample[0, ...]).sum(dim=0)
 #           viz.heatmap(visualize(difftot), opts=dict(caption="difftot"))
           
         elif args.dataset=='chexpert':
