@@ -10,7 +10,7 @@ sys.path.append(".")
 from guided_diffusion.bratsloader import BRATSDataset
 import blobfile as bf
 import torch as th
-from wavelet_util import DWT_2D
+from guided_diffusion.wavelet_util import DWT_2D
 
 import torch.distributed as dist
 import torch.nn.functional as F
