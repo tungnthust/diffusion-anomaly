@@ -170,7 +170,7 @@ def create_model(
         attention_ds.append(image_size // int(res))
         
     if dataset=='brats':
-      number_in_channels=4
+      number_in_channels=16
     else:
       number_in_channels=1
     print('numberinchannels', number_in_channels)
@@ -265,7 +265,7 @@ def create_classifier(
     for res in classifier_attention_resolutions.split(","):
         attention_ds.append(image_size // int(res))
     if dataset=='brats':
-      number_in_channels=4
+      number_in_channels=16
     else:
       number_in_channels=1
     print('number_in_channels classifier', number_in_channels)
