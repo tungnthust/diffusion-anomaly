@@ -26,6 +26,7 @@ from guided_diffusion.script_util import (
     add_dict_to_argparser,
     args_to_dict,
 )
+from guided_diffusion.wavelet_util import IDWT_2D
 def visualize(img):
     _min = img.min()
     _max = img.max()
@@ -34,7 +35,7 @@ def visualize(img):
 
 def main():
     args = create_argparser().parse_args()
-
+    iwt = IDWT_2D("haar")
     dist_util.setup_dist()
     logger.configure()
 
@@ -152,7 +153,9 @@ def main():
         end.record()
         th.cuda.synchronize()
         th.cuda.current_stream().synchronize()
-
+        sample *= 2
+        sample = iwt(
+                    sample[:, :4], sample[:, 4:8], sample[:, 8:12], sample[:, 12:16])
         sample = sample.cpu()
         org = org.cpu()
         print('time for 1000', start.elapsed_time(end))
