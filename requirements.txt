@@ -52,3 +52,4 @@ urllib3
 visdom
 websocket-client
 xmltodict
+torchgeometry
