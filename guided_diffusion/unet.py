@@ -449,7 +449,7 @@ class QKVAttention(nn.Module):
         return count_flops_attn(model, _x, y)
 class CrossAttention(nn.Module):
     def __init__(self, num_channels):
-        super(AttentionBlock, self).__init__()
+        super().__init__()
         self.num_channels = num_channels
         self.query = nn.Conv2d(num_channels, num_channels, kernel_size=1, stride=1, padding=0, bias=True)
 
@@ -487,6 +487,7 @@ class EdgeEncoder(nn.Module):
             input_channels,
             dims
     ):
+        super().__init__()
         self.image_size = image_size
         self.input_channels = input_channels
         self.dims = dims
