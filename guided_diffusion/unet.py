@@ -493,13 +493,13 @@ class EdgeEncoder(nn.Module):
         self.dims = dims
         self.conv1 = nn.Conv2d(12, 64, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        self.downsample1 = Downsample(128,  dims=2, out_channels=128)
+        self.downsample1 = Downsample(128,  use_conv=True, dims=2, out_channels=128)
         self.conv3 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
-        self.downsample2 = Downsample(128,  dims=2, out_channels=128)
+        self.downsample2 = Downsample(128, use_conv=True, dims=2, out_channels=128)
         self.conv4 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
-        self.downsample3 = Downsample(256,  dims=2, out_channels=256)
+        self.downsample3 = Downsample(256, use_conv=True, dims=2, out_channels=256)
         self.conv5 = nn.Conv2d(256, 384, kernel_size=3, padding=1)
-        self.downsample4 = Downsample(384,  dims=2, out_channels=384)
+        self.downsample4 = Downsample(384, use_conv=True, dims=2, out_channels=384)
         self.conv6 = nn.Conv2d(384, 512, kernel_size=3, padding=1)
         # self.dwt = DWT_2D("haar")
 
