@@ -513,7 +513,7 @@ class EdgeEncoder(nn.Module):
         x_32 = F.relu(self.conv4(x_32))
         x_16 = self.downsample3(x_32)
         x_16 = F.relu(self.conv5(x_16))
-        x_8 = self.downsample2(x_16)
+        x_8 = self.downsample4(x_16)
         x_8 = F.relu(self.conv6(x_8))
         return x_32, x_16, x_8
 
