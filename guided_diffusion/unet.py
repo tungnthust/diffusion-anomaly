@@ -766,7 +766,7 @@ class UNetModel(nn.Module):
         self.middle_block.apply(convert_module_to_f32)
         self.output_blocks.apply(convert_module_to_f32)
 
-    def forward(self, x, timesteps, y=None):
+    def forward(self, x, timesteps, y=None, ref_img=None):
         """
         Apply the model to an input batch.
 
@@ -781,7 +781,7 @@ class UNetModel(nn.Module):
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
-        x_32, x_16, x_8 = self.edge_encoder(x)
+        x_32, x_16, x_8 = self.edge_encoder(ref_img)
 
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
