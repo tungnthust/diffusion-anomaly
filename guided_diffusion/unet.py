@@ -447,6 +447,74 @@ class QKVAttention(nn.Module):
     @staticmethod
     def count_flops(model, _x, y):
         return count_flops_attn(model, _x, y)
+class CrossAttention(nn.Module):
+    def __init__(self, num_channels):
+        super(AttentionBlock, self).__init__()
+        self.num_channels = num_channels
+        self.query = nn.Conv2d(num_channels, num_channels, kernel_size=1, stride=1, padding=0, bias=True)
+
+        self.key = nn.Conv2d(num_channels, num_channels, kernel_size=1, stride=1, padding=0, bias=True)
+
+        self.value = nn.Conv2d(num_channels, num_channels, kernel_size=1, stride=1, padding=0, bias=True)
+
+        self.proj_out = zero_module(conv_nd(1, num_channels, num_channels, 1))
+
+    def forward(self, x, s):
+        b, c, *spatial = x.shape
+        q = self.query(x)
+        k = self.key(s)
+        v = self.value(s)
+        q = q.reshape(b, c, -1)
+        k = k.reshape(b, c, -1)
+        v = v.reshape(b, c, -1)
+        scale = 1 / math.sqrt(math.sqrt(self.num_channels))
+        weight = th.einsum(
+            "bct,bcs->bts", q * scale, k * scale
+        )  # More stable with f16 than dividing afterwards
+        weight = th.softmax(weight.float(), dim=-1).type(weight.dtype)
+
+        h = th.einsum("bts,bcs->bct", weight, v)
+        h = h.reshape(b, -1, h.shape[-1])
+        h = self.proj_out(h)
+
+        return (x + h).reshape(b, c, *spatial)
+
+    
+class EdgeEncoder(nn.Module):
+    def __init__(
+            self,
+            image_size,
+            input_channels,
+            dims
+    ):
+        self.image_size = image_size
+        self.input_channels = input_channels
+        self.dims = dims
+        self.conv1 = nn.Conv2d(12, 64, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.downsample1 = Downsample(128,  dims=2, out_channels=128)
+        self.conv3 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        self.downsample2 = Downsample(128,  dims=2, out_channels=128)
+        self.conv4 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+        self.downsample3 = Downsample(256,  dims=2, out_channels=256)
+        self.conv5 = nn.Conv2d(256, 384, kernel_size=3, padding=1)
+        self.downsample4 = Downsample(384,  dims=2, out_channels=384)
+        self.conv6 = nn.Conv2d(384, 512, kernel_size=3, padding=1)
+        # self.dwt = DWT_2D("haar")
+
+    def forward(self, input):
+        x = input[:, 1:, ...]
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x_64 = self.downsample1(x)
+        x_64 = F.relu(self.conv3(x_64))
+        x_32 = self.downsample2(x_64)
+        x_32 = F.relu(self.conv4(x_32))
+        x_16 = self.downsample3(x_32)
+        x_16 = F.relu(self.conv5(x_16))
+        x_8 = self.downsample2(x_16)
+        x_8 = F.relu(self.conv6(x_8))
+        return x_32, x_16, x_8
 
 
 class UNetModel(nn.Module):
@@ -522,7 +590,7 @@ class UNetModel(nn.Module):
         self.num_heads = num_heads
         self.num_head_channels = num_head_channels
         self.num_heads_upsample = num_heads_upsample
-
+        self.edge_encoder = EdgeEncoder(image_size=image_size, input_channels=16, dims=2)
         time_embed_dim = model_channels * 4
         self.time_embed = nn.Sequential(
             linear(model_channels, time_embed_dim),
@@ -674,6 +742,12 @@ class UNetModel(nn.Module):
             nn.SiLU(),
             zero_module(conv_nd(dims, model_channels, out_channels, 3, padding=1)),
         )
+        self.cross_attention1 = CrossAttention(256)
+        self.cross_attention2 = CrossAttention(384)
+        self.cross_attention3 = CrossAttention(512)
+        self.cross_attention4 = CrossAttention(512)
+        self.cross_attention5 = CrossAttention(384)
+        self.cross_attention6 = CrossAttention(256)
 
     def convert_to_fp16(self):
         """
@@ -706,22 +780,34 @@ class UNetModel(nn.Module):
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
+        x_32, x_16, x_8 = self.edge_encoder(x)
 
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
 
         h = x.type(self.dtype)
-        for module in self.input_blocks:
+        for level, module in enumerate(self.input_blocks):
             h = module(h, emb)
+            if level == 8:
+                h = self.cross_attention1(h, x_32)
+            if level == 11:
+                h = self.cross_attention2(h, x_16)
+            if level == 13:
+                h = self.cross_attention3(h, x_8)
             hs.append(h)
         h = self.middle_block(h, emb)
-        for module in self.output_blocks:
+        for level, module in enumerate(self.output_blocks):
             h = th.cat([h, hs.pop()], dim=1)
             h = module(h, emb)
+            if level == 2:
+                h = self.cross_attention4(h, x_8)
+            if level == 5:
+                h = self.cross_attention5(h, x_16)
+            if level == 8:
+                h = self.cross_attention6(h, x_32)
         h = h.type(x.dtype)
         return self.out(h)
-
 
 class SuperResModel(UNetModel):
     """
