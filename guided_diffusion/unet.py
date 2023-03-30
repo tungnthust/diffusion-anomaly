@@ -504,7 +504,7 @@ class EdgeEncoder(nn.Module):
         # self.dwt = DWT_2D("haar")
 
     def forward(self, input):
-        x = input[:, 1:, ...]
+        x = input[:, 4:, ...]
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x_64 = self.downsample1(x)
