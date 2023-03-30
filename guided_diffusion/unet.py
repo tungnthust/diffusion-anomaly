@@ -477,7 +477,7 @@ class CrossAttention(nn.Module):
         h = h.reshape(b, -1, h.shape[-1])
         h = self.proj_out(h)
 
-        return (x + h).reshape(b, c, *spatial)
+        return (x.reshape(b, c, -1) + h).reshape(b, c, *spatial)
 
     
 class EdgeEncoder(nn.Module):
