@@ -1096,7 +1096,7 @@ class GaussianDiffusion:
                 # it affect our mean prediction.
                 frozen_out = th.cat([model_output.detach(), model_var_values], dim=1)
                 terms["vb"] = self._vb_terms_bpd(
-                    model=lambda *args, r=frozen_out: r,
+                    model=lambda *args, ref_img=x_start, r=frozen_out: r,
                     x_start=x_start,
                     x_t=x_t,
                     t=t,
