@@ -782,7 +782,7 @@ class UNetModel(nn.Module):
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
         x_32, x_16, x_8 = self.edge_encoder(ref_img)
-
+        print("AAA:", ref_img.shape)
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
