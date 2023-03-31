@@ -253,7 +253,7 @@ class GaussianDiffusion:
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def p_mean_variance(
-            self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
+            self, model, x, x_start, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
     ):
         """
         Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
@@ -280,7 +280,7 @@ class GaussianDiffusion:
         B, C = x.shape[:2]
         
         assert t.shape == (B,)
-        model_output = model(x, self._scale_timesteps(t), **model_kwargs)
+        model_output = model(x, self._scale_timesteps(t), ref_img=x_start, **model_kwargs)
         
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             assert model_output.shape == (B, C * 2, *x.shape[2:])
@@ -491,6 +491,7 @@ class GaussianDiffusion:
             self,
             model,
             x,
+            x_start,
             t,
             clip_denoised=True,
             denoised_fn=None,
@@ -516,6 +517,7 @@ class GaussianDiffusion:
         out = self.p_mean_variance(
             model,
             x,
+            x_start,
             t,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
@@ -676,6 +678,7 @@ class GaussianDiffusion:
                     out = self.p_sample(
                         model,
                         img,
+                        org,
                         t,
                         clip_denoised=clip_denoised,
                         denoised_fn=denoised_fn,
@@ -698,6 +701,7 @@ class GaussianDiffusion:
             self,
             model,
             x,
+            x_start,
             t,
             clip_denoised=True,
             denoised_fn=None,
@@ -713,6 +717,7 @@ class GaussianDiffusion:
         out = self.p_mean_variance(
             model,
             x,
+            x_start,
             t,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
@@ -749,6 +754,7 @@ class GaussianDiffusion:
         self,
         model,
         x,
+        x_start,
         t,
         clip_denoised=True,
         denoised_fn=None,
@@ -762,6 +768,7 @@ class GaussianDiffusion:
         out = self.p_mean_variance(
             model,
             x,
+            x_start,
             t,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
@@ -909,6 +916,7 @@ class GaussianDiffusion:
             shape,
             time=noise_level,
             noise=x_noisy,
+            x_start=org,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
             cond_fn=cond_fn,
@@ -933,6 +941,7 @@ class GaussianDiffusion:
         shape,
         time=1000,
         noise=None,
+        x_start=None,
         clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
@@ -975,6 +984,7 @@ class GaussianDiffusion:
                 out = self.ddim_reverse_sample(
                     model,
                     img,
+                    x_start,
                     t,
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
@@ -992,6 +1002,7 @@ class GaussianDiffusion:
                  out = self.ddim_sample(
                     model,
                     img,
+                    x_start,
                     t,
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
@@ -1020,7 +1031,7 @@ class GaussianDiffusion:
             x_start=x_start, x_t=x_t, t=t
         )
         out = self.p_mean_variance(
-            model, x_t, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs
+            model, x_t, x_start, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs
         )
         kl = normal_kl(
             true_mean, true_log_variance_clipped, out["mean"], out["log_variance"]
