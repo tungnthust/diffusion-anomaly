@@ -794,13 +794,11 @@ class UNetModel(nn.Module):
             h = module(h, emb)
             if level == 0:
                 h = self.cross_attention0(h, x_64)
-            if level == 3:
-                print(h.shape)
-                print(module)
+            if level == 4:
                 h = self.cross_attention1(h, x_32)
-            if level == 6:
+            if level == 7:
                 h = self.cross_attention2(h, x_16)
-            if level == 9:
+            if level == 10:
                 h = self.cross_attention3(h, x_8)
             hs.append(h)
         h = self.middle_block(h, emb)
