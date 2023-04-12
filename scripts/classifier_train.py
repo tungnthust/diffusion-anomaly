@@ -35,7 +35,7 @@ from guided_diffusion.script_util import (
     create_classifier_and_diffusion,
 )
 from guided_diffusion.train_util import parse_resume_step_from_filename, log_loss_dict
-
+from guided_diffusion.data import BrainDataset
 
 
 def main():
