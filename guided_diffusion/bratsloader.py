@@ -16,32 +16,39 @@ class BRATSDataset(torch.utils.data.Dataset):
         
         super().__init__()
         
-#         paths = [p for p in Path(f'{directory}').glob(f'**/*.h5')]
+        # paths = [p for p in Path(f'{directory}').glob(f'**/*.h5')]
         paths = []
-        with open('/kaggle/working/diffusion-anomaly/data/data_paths.pickle', 'rb') as fp:
-            paths = pickle.load(fp)
-        self.datapaths = []
-        for path in paths:
-            volume_idx = int(str(path).split('/')[-1].split('_')[1])
-            slice_idx = int(str(path).split('/')[-1].split('_')[3].split('.')[0])
-            if (mode == "val") and (volume_idx > 52 and volume_idx <= 88) and (slice_idx >= 80 and slice_idx <= 128):
-                self.datapaths.append(path)
-            if (mode == "train") and (volume_idx <= 52 or volume_idx > 88) and (slice_idx >= 80 and slice_idx <= 128):
-                self.datapaths.append(path)
+        if (mode == "train"):
+            with open('/kaggle/working/diffusion-anomaly/data/brats2021_data_paths.pickle', 'rb') as fp:
+                paths = pickle.load(fp)
+        if (mode == "val"):
+            with open('/kaggle/working/diffusion-anomaly/data/brats2021_val_data_paths.pickle', 'rb') as fp:
+                paths = pickle.load(fp)
+        if (mode == "test"):
+            with open('/kaggle/working/diffusion-anomaly/data/brats2021_test_data_paths.pickle', 'rb') as fp:
+                paths = pickle.load(fp)
+        self.datapaths = paths
+        # for path in paths:
+        #     volume_idx = int(str(path).split('/')[-1].split('_')[1])
+        #     slice_idx = int(str(path).split('/')[-1].split('_')[3].split('.')[0])
+        #     if (mode == "val") and (volume_idx > 52 and volume_idx <= 88) and (slice_idx >= 80 and slice_idx <= 128):
+        #         self.datapaths.append(path)
+        #     if (mode == "train") and (volume_idx <= 52 or volume_idx > 88) and (slice_idx >= 80 and slice_idx <= 128):
+        #         self.datapaths.append(path)
 
     def __getitem__(self, idx):
-        scaler = MinMaxScaler()
-        data = h5py.File(self.datapaths[idx], 'r')
-        image = np.array(data['image'])
-        mask = np.array(data['mask'])
-        image = scaler.fit_transform(image.reshape(-1, image.shape[-1])).reshape(image.shape)
-        image = np.transpose(image, [2, 0, 1])
+        # scaler = MinMaxScaler()
+        data = np.load(self.datapaths[idx])
+        image = np.array(data['x'][0])
+        mask = np.array(data['y'][0][0])
+        # image = scaler.fit_transform(image.reshape(-1, image.shape[-1])).reshape(image.shape)
+        # image = np.transpose(image, [2, 0, 1])
         label = 1 if np.sum(mask) > 0 else 0
-        padding_image = np.zeros((4,256,256)) + np.broadcast_to(image[:, 0, 0][:, np.newaxis, np.newaxis], (4, 256, 256))
-        padding_image[:,8:-8,8:-8] = image
+        # padding_image = np.zeros((4,256,256)) + np.broadcast_to(image[:, 0, 0][:, np.newaxis, np.newaxis], (4, 256, 256))
+        # padding_image[:,8:-8,8:-8] = image
         cond = {}
         cond['y'] = label
-        return np.float32(padding_image), cond, label, np.float32(np.sum(mask, axis=2))
+        return np.float32(image), cond, label, mask
 
     def __len__(self):
         return len(self.datapaths)
