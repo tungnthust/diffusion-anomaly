@@ -750,7 +750,7 @@ class UNetModel(nn.Module):
         self.cross_attention4 = CrossAttention(512)
         self.cross_attention5 = CrossAttention(384)
         self.cross_attention6 = CrossAttention(256)
-        self.cross_attention6 = CrossAttention(128)
+        self.cross_attention7 = CrossAttention(128)
 
 
     def convert_to_fp16(self):
