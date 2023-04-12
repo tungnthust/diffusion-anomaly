@@ -795,6 +795,8 @@ class UNetModel(nn.Module):
             if level == 0:
                 h = self.cross_attention0(h, x_64)
             if level == 3:
+                print(h.shape)
+                print(module)
                 h = self.cross_attention1(h, x_32)
             if level == 6:
                 h = self.cross_attention2(h, x_16)
