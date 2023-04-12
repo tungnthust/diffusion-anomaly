@@ -493,8 +493,8 @@ class EdgeEncoder(nn.Module):
         self.dims = dims
         self.conv1 = nn.Conv2d(12, 64, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        self.downsample1 = Downsample(128,  use_conv=True, dims=2, out_channels=128)
-        self.conv3 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        # self.downsample1 = Downsample(128, use_conv=True, dims=2, out_channels=128)
+        # self.conv3 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
         self.downsample2 = Downsample(128, use_conv=True, dims=2, out_channels=128)
         self.conv4 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
         self.downsample3 = Downsample(256, use_conv=True, dims=2, out_channels=256)
@@ -506,16 +506,16 @@ class EdgeEncoder(nn.Module):
     def forward(self, input):
         x = input[:, 4:, ...]
         x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x_64 = self.downsample1(x)
-        x_64 = F.relu(self.conv3(x_64))
+        x_64 = F.relu(self.conv2(x))
+        # x_64 = self.downsample1(x)
+        # x_64 = F.relu(self.conv3(x_64))
         x_32 = self.downsample2(x_64)
         x_32 = F.relu(self.conv4(x_32))
         x_16 = self.downsample3(x_32)
         x_16 = F.relu(self.conv5(x_16))
         x_8 = self.downsample4(x_16)
         x_8 = F.relu(self.conv6(x_8))
-        return x_32, x_16, x_8
+        return x_64, x_32, x_16, x_8
 
 
 class UNetModel(nn.Module):
@@ -743,12 +743,15 @@ class UNetModel(nn.Module):
             nn.SiLU(),
             zero_module(conv_nd(dims, model_channels, out_channels, 3, padding=1)),
         )
+        self.cross_attention0 = CrossAttention(128)
         self.cross_attention1 = CrossAttention(256)
         self.cross_attention2 = CrossAttention(384)
         self.cross_attention3 = CrossAttention(512)
         self.cross_attention4 = CrossAttention(512)
         self.cross_attention5 = CrossAttention(384)
         self.cross_attention6 = CrossAttention(256)
+        self.cross_attention6 = CrossAttention(128)
+
 
     def convert_to_fp16(self):
         """
@@ -781,7 +784,7 @@ class UNetModel(nn.Module):
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
-        x_32, x_16, x_8 = self.edge_encoder(ref_img)
+        x_64, x_32, x_16, x_8 = self.edge_encoder(ref_img)
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
@@ -789,11 +792,13 @@ class UNetModel(nn.Module):
         h = x.type(self.dtype)
         for level, module in enumerate(self.input_blocks):
             h = module(h, emb)
-            if level == 8:
+            if level == 0:
+                h = self.cross_attention0(h, x_64)
+            if level == 3:
                 h = self.cross_attention1(h, x_32)
-            if level == 11:
+            if level == 6:
                 h = self.cross_attention2(h, x_16)
-            if level == 13:
+            if level == 9:
                 h = self.cross_attention3(h, x_8)
             hs.append(h)
         h = self.middle_block(h, emb)
@@ -806,6 +811,8 @@ class UNetModel(nn.Module):
                 h = self.cross_attention5(h, x_16)
             if level == 8:
                 h = self.cross_attention6(h, x_32)
+            if level == 11:
+                h = self.cross_attention7(h, x_64)
         h = h.type(x.dtype)
         return self.out(h)
 
