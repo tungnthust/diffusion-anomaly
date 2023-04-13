@@ -19,13 +19,13 @@ class BRATSDataset(torch.utils.data.Dataset):
         # paths = [p for p in Path(f'{directory}').glob(f'**/*.h5')]
         paths = []
         if (mode == "train"):
-            with open('/kaggle/working/diffusion-anomaly/data/brats2021_data_paths.pickle', 'rb') as fp:
+            with open('/kaggle/working/diffusion-anomaly/data/brats2021_filtered_train_data_paths.pickle', 'rb') as fp:
                 paths = pickle.load(fp)
         if (mode == "val"):
-            with open('/kaggle/working/diffusion-anomaly/data/brats2021_val_data_paths.pickle', 'rb') as fp:
+            with open('/kaggle/working/diffusion-anomaly/data/brats2021_filtered_val_data_paths.pickle', 'rb') as fp:
                 paths = pickle.load(fp)
         if (mode == "test"):
-            with open('/kaggle/working/diffusion-anomaly/data/brats2021_test_data_paths.pickle', 'rb') as fp:
+            with open('/kaggle/working/diffusion-anomaly/data/brats2021_filtered_test_data_paths.pickle', 'rb') as fp:
                 paths = pickle.load(fp)
         self.datapaths = paths
         # for path in paths:
