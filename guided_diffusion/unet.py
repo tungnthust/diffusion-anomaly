@@ -743,14 +743,14 @@ class UNetModel(nn.Module):
             nn.SiLU(),
             zero_module(conv_nd(dims, model_channels, out_channels, 3, padding=1)),
         )
-        self.cross_attention0 = CrossAttention(128)
+        # self.cross_attention0 = CrossAttention(128)
         self.cross_attention1 = CrossAttention(256)
         self.cross_attention2 = CrossAttention(384)
         self.cross_attention3 = CrossAttention(512)
         self.cross_attention4 = CrossAttention(512)
         self.cross_attention5 = CrossAttention(384)
         self.cross_attention6 = CrossAttention(256)
-        self.cross_attention7 = CrossAttention(128)
+        # self.cross_attention7 = CrossAttention(128)
 
 
     def convert_to_fp16(self):
@@ -792,8 +792,8 @@ class UNetModel(nn.Module):
         h = x.type(self.dtype)
         for level, module in enumerate(self.input_blocks):
             h = module(h, emb)
-            if level == 0:
-                h = self.cross_attention0(h, x_64)
+            # if level == 0:
+            #     h = self.cross_attention0(h, x_64)
             if level == 4:
                 h = self.cross_attention1(h, x_32)
             if level == 7:
@@ -811,8 +811,8 @@ class UNetModel(nn.Module):
                 h = self.cross_attention5(h, x_16)
             if level == 8:
                 h = self.cross_attention6(h, x_32)
-            if level == 11:
-                h = self.cross_attention7(h, x_64)
+            # if level == 11:
+            #     h = self.cross_attention7(h, x_64)
         h = h.type(x.dtype)
         return self.out(h)
 
