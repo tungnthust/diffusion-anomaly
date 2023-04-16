@@ -128,11 +128,8 @@ def main():
 
     def forward_backward_log(data_loader, prefix="train"):
         if args.dataset=='brats':
-            print("loading batch ...")
             batch, _, labels, _ = next(data_loader)
             # print('IS BRATS')
-            print("loaded batch ...")
-
 
         elif  args.dataset=='chexpert':
             batch, extra = next(data_loader)
