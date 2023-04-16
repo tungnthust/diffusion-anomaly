@@ -120,9 +120,12 @@ def main():
             bf.dirname(args.resume_checkpoint), f"opt{resume_step:06}.pt"
         )
         logger.log(f"loading optimizer state from checkpoint: {opt_checkpoint}")
-        opt.load_state_dict(
-            dist_util.load_state_dict(opt_checkpoint, map_location=dist_util.dev())
-        )
+        try:
+            opt.load_state_dict(
+                dist_util.load_state_dict(opt_checkpoint, map_location=dist_util.dev())
+            )
+        except:
+            pass
 
     logger.log("training classifier model...")
 
