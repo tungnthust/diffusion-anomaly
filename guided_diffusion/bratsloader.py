@@ -17,8 +17,8 @@ class BRATSDataset(torch.utils.data.Dataset):
         data = h5py.File(self.datapaths[idx], 'r')
         image = np.transpose(data['image'], [2, 0, 1])
         mask = np.sum(data['mask'], axis=2)
-        image_resized = F.interpolate(torch.Tensor([image]), mode="bilinear", size=(128, 128))[0]
-        mask_resized = F.interpolate(torch.Tensor([[mask]]), mode="bilinear", size=(128, 128))[0][0]
+        image_resized = F.interpolate(torch.Tensor(np.array([image])), mode="bilinear", size=(128, 128))[0]
+        mask_resized = F.interpolate(torch.Tensor(np.array([[mask]])), mode="bilinear", size=(128, 128))[0][0]
         image = np.array(image_resized)        
 
         for i in range(image.shape[0]):
