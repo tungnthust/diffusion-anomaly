@@ -132,7 +132,11 @@ def main():
 
     def forward_backward_log(data_loader, prefix="train"):
         if args.dataset=='brats':
-            batch, cond, labels, _ = next(data_loader)
+            try:
+                batch, cond, labels, _ = next(data_loader)
+            except:
+                data_loader = iter(datal)
+                batch, cond, labels, _ = next(data_loader)
             if th.cuda.is_available():
                 batchLL, batchLH, batchHL, batchHH = dwt(th.Tensor(batch).cuda())
                 batch = th.cat((batchLL, batchLH, batchHL, batchHH), dim=1) / 2.0
