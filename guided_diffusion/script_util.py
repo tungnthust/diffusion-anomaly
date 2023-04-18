@@ -175,7 +175,7 @@ def create_model(
       number_in_channels=1
     print('numberinchannels', number_in_channels)
       
-
+    print(dropout)
     return UNetModel(
         image_size=image_size,
         in_channels=number_in_channels,
@@ -206,6 +206,7 @@ def create_classifier_and_diffusion(
     classifier_use_scale_shift_norm,
     classifier_resblock_updown,
     classifier_pool,
+    classifier_dropout,
     learn_sigma,
     diffusion_steps,
     noise_schedule,
@@ -226,6 +227,7 @@ def create_classifier_and_diffusion(
         classifier_use_scale_shift_norm,
         classifier_resblock_updown,
         classifier_pool,
+        classifier_dropout,
         dataset,
     )
     diffusion = create_gaussian_diffusion(
@@ -250,6 +252,7 @@ def create_classifier(
     classifier_use_scale_shift_norm,
     classifier_resblock_updown,
     classifier_pool,
+    classifier_dropout,
     dataset,
 ):
     if image_size == 256:
@@ -278,12 +281,13 @@ def create_classifier(
         out_channels=2,
         num_res_blocks=classifier_depth,
         attention_resolutions=tuple(attention_ds),
+        dropout=classifier_dropout,
         channel_mult=channel_mult,
         use_fp16=classifier_use_fp16,
         num_head_channels=32,
         use_scale_shift_norm=classifier_use_scale_shift_norm,
         resblock_updown=classifier_resblock_updown,
-        pool=classifier_pool,
+        pool=classifier_pool        
     )
 
 
