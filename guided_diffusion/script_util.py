@@ -38,6 +38,7 @@ def classifier_defaults():
         classifier_use_scale_shift_norm=True,  # False
         classifier_resblock_updown=True,  # False
         classifier_pool="spatial",
+        classifier_dropout=0.0,
         dataset='brats'
     )
 
@@ -170,12 +171,12 @@ def create_model(
         attention_ds.append(image_size // int(res))
         
     if dataset=='brats':
-      number_in_channels=16
+      number_in_channels=4
     else:
       number_in_channels=1
     print('numberinchannels', number_in_channels)
       
-
+    print(dropout)
     return UNetModel(
         image_size=image_size,
         in_channels=number_in_channels,
@@ -206,6 +207,7 @@ def create_classifier_and_diffusion(
     classifier_use_scale_shift_norm,
     classifier_resblock_updown,
     classifier_pool,
+    classifier_dropout,
     learn_sigma,
     diffusion_steps,
     noise_schedule,
@@ -226,6 +228,7 @@ def create_classifier_and_diffusion(
         classifier_use_scale_shift_norm,
         classifier_resblock_updown,
         classifier_pool,
+        classifier_dropout,
         dataset,
     )
     diffusion = create_gaussian_diffusion(
@@ -250,6 +253,7 @@ def create_classifier(
     classifier_use_scale_shift_norm,
     classifier_resblock_updown,
     classifier_pool,
+    classifier_dropout,
     dataset,
 ):
     if image_size == 256:
@@ -265,11 +269,12 @@ def create_classifier(
     for res in classifier_attention_resolutions.split(","):
         attention_ds.append(image_size // int(res))
     if dataset=='brats':
-      number_in_channels=16
+      number_in_channels=4
     else:
       number_in_channels=1
     print('number_in_channels classifier', number_in_channels)
       
+    print('dropout', classifier_dropout)
 
     return EncoderUNetModel(
         image_size=image_size,
@@ -278,12 +283,13 @@ def create_classifier(
         out_channels=2,
         num_res_blocks=classifier_depth,
         attention_resolutions=tuple(attention_ds),
+        dropout=classifier_dropout,
         channel_mult=channel_mult,
         use_fp16=classifier_use_fp16,
         num_head_channels=32,
         use_scale_shift_norm=classifier_use_scale_shift_norm,
         resblock_updown=classifier_resblock_updown,
-        pool=classifier_pool,
+        pool=classifier_pool        
     )
 
 
