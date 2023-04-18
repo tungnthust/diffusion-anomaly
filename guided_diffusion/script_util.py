@@ -38,6 +38,7 @@ def classifier_defaults():
         classifier_use_scale_shift_norm=True,  # False
         classifier_resblock_updown=True,  # False
         classifier_pool="spatial",
+        classifier_dropout=0,
         dataset='brats'
     )
 
@@ -273,7 +274,8 @@ def create_classifier(
       number_in_channels=1
     print('number_in_channels classifier', number_in_channels)
       
-
+    print('dropout', classifier_dropout)
+    
     return EncoderUNetModel(
         image_size=image_size,
         in_channels=number_in_channels,
