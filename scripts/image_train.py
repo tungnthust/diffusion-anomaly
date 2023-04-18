@@ -33,7 +33,7 @@ def main(rank):
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
-    print("********", dist_util.dev())
+    print(f"RANK: {rank} ********", dist_util.dev())
     model.to(dist_util.dev())
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion,  maxt=args.max_L)
 
