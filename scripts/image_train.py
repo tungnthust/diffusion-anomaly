@@ -17,10 +17,13 @@ from guided_diffusion.script_util import (
     add_dict_to_argparser,
 )
 from guided_diffusion.train_util import TrainLoop
+from torch.utils.data.distributed import DistributedSampler
+import torch.multiprocessing as mp
+from torch.distributed import destroy_process_group
 # from visdom import Visdom
 # viz = Visdom(port=8850)
 
-def main():
+def main(rank):
     args = create_argparser().parse_args()
 
     dist_util.setup_dist()
@@ -40,7 +43,8 @@ def main():
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
-            shuffle=True)
+            shuffle=True,
+            sampler=DistributedSampler(ds))
        # data = iter(datal)
 
     elif args.dataset == 'chexpert':
@@ -70,9 +74,11 @@ def main():
         weight_decay=args.weight_decay,
         lr_anneal_steps=args.lr_anneal_steps,
         dataset=args.dataset,
-        max_L=args.max_L
+        max_L=args.max_L,
+        rank=rank
     ).run_loop()
 
+    destroy_process_group()
 
 def create_argparser():
     defaults = dict(
@@ -99,4 +105,7 @@ def create_argparser():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    world_size = th.cuda.device_count()
+    mp.spawn(main, nprocs=world_size)
+

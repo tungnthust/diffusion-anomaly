@@ -43,7 +43,8 @@ class TrainLoop:
         weight_decay=0.0,
         lr_anneal_steps=0,
         dataset='brats',
-        max_L=1000
+        max_L=1000,
+        rank
     ):
         self.model = model
         self.diffusion = diffusion
@@ -72,7 +73,7 @@ class TrainLoop:
         self.global_batch = self.batch_size * dist.get_world_size()
 
         self.sync_cuda = th.cuda.is_available()
-
+        self.rank = rank
         self._load_and_sync_parameters()
         self.mp_trainer = MixedPrecisionTrainer(
             model=self.model,
@@ -160,7 +161,7 @@ class TrainLoop:
             self.opt.load_state_dict(state_dict)
 
     def run_loop(self):
-        i = 0
+        epoch = 0
 
         while (
             not self.lr_anneal_steps
@@ -170,6 +171,8 @@ class TrainLoop:
                 try:
                     batch, cond, label, _ = next(self.iterdatal)
                 except:
+                    epoch += 1
+                    self.datal.sampler.set_epoch(epoch)
                     self.iterdatal = iter(self.datal)
                     batch, cond, label, _ = next(self.iterdatal)
             elif self.dataset=='chexpert':
@@ -180,7 +183,7 @@ class TrainLoop:
 
             if self.step % self.log_interval == 0:
                 logger.dumpkvs()
-            if self.step % self.save_interval == 0:
+            if (self.rank == 0) and (self.step % self.save_interval == 0):
                 self.save()
                 # Run for a finite amount of time in integration tests.
                 if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
