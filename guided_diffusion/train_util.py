@@ -100,7 +100,7 @@ class TrainLoop:
             self.use_ddp = True
             self.ddp_model = DDP(
                 self.model,
-                device_ids=[dist_util.dev()],
+                device_ids=[th.device(f"cuda:0"), th.device(f"cuda:1")],
                 output_device=dist_util.dev(),
                 broadcast_buffers=False,
                 bucket_cap_mb=128,
