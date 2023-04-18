@@ -171,7 +171,7 @@ def create_model(
         attention_ds.append(image_size // int(res))
         
     if dataset=='brats':
-      number_in_channels=4
+      number_in_channels=16
     else:
       number_in_channels=1
     print('numberinchannels', number_in_channels)
@@ -269,12 +269,11 @@ def create_classifier(
     for res in classifier_attention_resolutions.split(","):
         attention_ds.append(image_size // int(res))
     if dataset=='brats':
-      number_in_channels=4
+      number_in_channels=16
     else:
       number_in_channels=1
     print('number_in_channels classifier', number_in_channels)
       
-    print('dropout', classifier_dropout)
 
     return EncoderUNetModel(
         image_size=image_size,
@@ -282,14 +281,14 @@ def create_classifier(
         model_channels=classifier_width,
         out_channels=2,
         num_res_blocks=classifier_depth,
-        attention_resolutions=tuple(attention_ds),
         dropout=classifier_dropout,
+        attention_resolutions=tuple(attention_ds),
         channel_mult=channel_mult,
         use_fp16=classifier_use_fp16,
         num_head_channels=32,
         use_scale_shift_norm=classifier_use_scale_shift_norm,
         resblock_updown=classifier_resblock_updown,
-        pool=classifier_pool        
+        pool=classifier_pool,
     )
 
 
