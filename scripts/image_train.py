@@ -43,7 +43,7 @@ def main(rank):
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
-            shuffle=True,
+            shuffle=False,
             sampler=DistributedSampler(ds))
        # data = iter(datal)
 
