@@ -42,9 +42,9 @@ class BRATSDataset(torch.utils.data.Dataset):
         for i in range(image.shape[0]):
             image[i] = irm_min_max_preprocess(image[i])
         mask = data['mask']
-        padding_image = torch.zeros(4, 256, 256)
+        padding_image = np.zeros((4, 256, 256))
         padding_image[:, 8:-8, 8:-8] = image
-        padding_mask = torch.zeros(256, 256)
+        padding_mask = np.zeros((256, 256))
         padding_mask[8:-8, 8:-8] = mask
         label = 1 if np.sum(mask) > 0 else 0
         cond = {}
