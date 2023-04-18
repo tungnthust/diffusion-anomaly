@@ -286,7 +286,7 @@ def create_classifier(
         dropout=classifier_dropout,
         channel_mult=channel_mult,
         use_fp16=classifier_use_fp16,
-        num_head_channels=64,
+        num_head_channels=32,
         use_scale_shift_norm=classifier_use_scale_shift_norm,
         resblock_updown=classifier_resblock_updown,
         pool=classifier_pool        
