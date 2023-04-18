@@ -22,10 +22,11 @@ def setup_dist():
     """
     Setup a distributed process group.
     """
-    if dist.is_initialized():
-        return
+    # if dist.is_initialized():
+    #     return
 
     comm = MPI.COMM_WORLD
+    print(f"COMMM {comm.rank}", comm.size)
     backend = "gloo" if not th.cuda.is_available() else "nccl"
 
     if backend == "gloo":
