@@ -38,8 +38,8 @@ class BRATSDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         data = np.load(self.datapaths[idx])
         image = data['image']
-        for i in range(image.shape[0]):
-            image[i] = irm_min_max_preprocess(image[i])
+        # for i in range(image.shape[0]):
+        #     image[i] = irm_min_max_preprocess(image[i])
         mask = data['mask']
         label = 1 if np.sum(mask) > 0 else 0
         cond = {}
