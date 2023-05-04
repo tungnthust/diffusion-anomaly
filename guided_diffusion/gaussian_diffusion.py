@@ -253,7 +253,7 @@ class GaussianDiffusion:
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def p_mean_variance(
-            self, model, x, x_start, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
+            self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
     ):
         """
         Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
@@ -280,7 +280,7 @@ class GaussianDiffusion:
         B, C = x.shape[:2]
         
         assert t.shape == (B,)
-        model_output = model(x, self._scale_timesteps(t), ref_img=x_start, **model_kwargs)
+        model_output = model(x, self._scale_timesteps(t), **model_kwargs)
         
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             assert model_output.shape == (B, C * 2, *x.shape[2:])
@@ -491,7 +491,6 @@ class GaussianDiffusion:
             self,
             model,
             x,
-            x_start,
             t,
             clip_denoised=True,
             denoised_fn=None,
@@ -517,7 +516,6 @@ class GaussianDiffusion:
         out = self.p_mean_variance(
             model,
             x,
-            x_start,
             t,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
@@ -701,7 +699,6 @@ class GaussianDiffusion:
             self,
             model,
             x,
-            x_start,
             t,
             clip_denoised=True,
             denoised_fn=None,
@@ -717,7 +714,6 @@ class GaussianDiffusion:
         out = self.p_mean_variance(
             model,
             x,
-            x_start,
             t,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
@@ -754,7 +750,6 @@ class GaussianDiffusion:
         self,
         model,
         x,
-        x_start,
         t,
         clip_denoised=True,
         denoised_fn=None,
@@ -768,7 +763,6 @@ class GaussianDiffusion:
         out = self.p_mean_variance(
             model,
             x,
-            x_start,
             t,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
@@ -916,7 +910,6 @@ class GaussianDiffusion:
             shape,
             time=noise_level,
             noise=x_noisy,
-            x_start=org,
             clip_denoised=clip_denoised,
             denoised_fn=denoised_fn,
             cond_fn=cond_fn,
@@ -941,7 +934,6 @@ class GaussianDiffusion:
         shape,
         time=1000,
         noise=None,
-        x_start=None,
         clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
@@ -984,7 +976,6 @@ class GaussianDiffusion:
                 out = self.ddim_reverse_sample(
                     model,
                     img,
-                    x_start,
                     t,
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
@@ -1002,7 +993,6 @@ class GaussianDiffusion:
                  out = self.ddim_sample(
                     model,
                     img,
-                    x_start,
                     t,
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
@@ -1083,7 +1073,7 @@ class GaussianDiffusion:
             if self.loss_type == LossType.RESCALED_KL:
                 terms["loss"] *= self.num_timesteps
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            model_output = model(x_t, self._scale_timesteps(t), ref_img=x_start, **model_kwargs)
+            model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
 
             if self.model_var_type in [
                 ModelVarType.LEARNED,
@@ -1096,7 +1086,7 @@ class GaussianDiffusion:
                 # it affect our mean prediction.
                 frozen_out = th.cat([model_output.detach(), model_var_values], dim=1)
                 terms["vb"] = self._vb_terms_bpd(
-                    model=lambda *args, ref_img=x_start, r=frozen_out: r,
+                    model=lambda *args, r=frozen_out: r,
                     x_start=x_start,
                     x_t=x_t,
                     t=t,
