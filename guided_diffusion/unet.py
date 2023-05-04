@@ -591,7 +591,7 @@ class UNetModel(nn.Module):
         self.num_heads = num_heads
         self.num_head_channels = num_head_channels
         self.num_heads_upsample = num_heads_upsample
-        self.edge_encoder = EdgeEncoder(image_size=image_size, input_channels=16, dims=2)
+        # self.edge_encoder = EdgeEncoder(image_size=image_size, input_channels=16, dims=2)
         time_embed_dim = model_channels * 4
         self.time_embed = nn.Sequential(
             linear(model_channels, time_embed_dim),
@@ -743,12 +743,12 @@ class UNetModel(nn.Module):
             nn.SiLU(),
             zero_module(conv_nd(dims, model_channels, out_channels, 3, padding=1)),
         )
-        self.cross_attention1 = CrossAttention(256)
-        self.cross_attention2 = CrossAttention(384)
-        self.cross_attention3 = CrossAttention(512)
-        self.cross_attention4 = CrossAttention(512)
-        self.cross_attention5 = CrossAttention(384)
-        self.cross_attention6 = CrossAttention(256)
+        # self.cross_attention1 = CrossAttention(256)
+        # self.cross_attention2 = CrossAttention(384)
+        # self.cross_attention3 = CrossAttention(512)
+        # self.cross_attention4 = CrossAttention(512)
+        # self.cross_attention5 = CrossAttention(384)
+        # self.cross_attention6 = CrossAttention(256)
 
     def convert_to_fp16(self):
         """
