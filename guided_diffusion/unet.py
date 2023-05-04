@@ -781,7 +781,7 @@ class UNetModel(nn.Module):
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
-        x_32, x_16, x_8 = self.edge_encoder(ref_img)
+        # x_32, x_16, x_8 = self.edge_encoder(ref_img)
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
@@ -789,23 +789,23 @@ class UNetModel(nn.Module):
         h = x.type(self.dtype)
         for level, module in enumerate(self.input_blocks):
             h = module(h, emb)
-            if level == 8:
-                h = self.cross_attention1(h, x_32)
-            if level == 11:
-                h = self.cross_attention2(h, x_16)
-            if level == 13:
-                h = self.cross_attention3(h, x_8)
+            # if level == 8:
+            #     h = self.cross_attention1(h, x_32)
+            # if level == 11:
+            #     h = self.cross_attention2(h, x_16)
+            # if level == 13:
+            #     h = self.cross_attention3(h, x_8)
             hs.append(h)
         h = self.middle_block(h, emb)
         for level, module in enumerate(self.output_blocks):
             h = th.cat([h, hs.pop()], dim=1)
             h = module(h, emb)
-            if level == 2:
-                h = self.cross_attention4(h, x_8)
-            if level == 5:
-                h = self.cross_attention5(h, x_16)
-            if level == 8:
-                h = self.cross_attention6(h, x_32)
+            # if level == 2:
+            #     h = self.cross_attention4(h, x_8)
+            # if level == 5:
+            #     h = self.cross_attention5(h, x_16)
+            # if level == 8:
+            #     h = self.cross_attention6(h, x_32)
         h = h.type(x.dtype)
         return self.out(h)
 
