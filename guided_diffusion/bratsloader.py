@@ -32,8 +32,9 @@ class BRATSDataset(torch.utils.data.Dataset):
         
         super().__init__()
         self.datapaths = []
-        with open(f'/kaggle/working/diffusion-anomaly/data/brats/{mode}_brats20_datapaths.pickle', 'rb') as fp:
+        with open(f'/kaggle/working/diffusion-anomaly/data/brats/{mode}_healthy_brats20_datapaths.pickle', 'rb') as fp:
             self.datapaths = pickle.load(fp)
+        print(f"Number data: {len(self.datapaths)}")
 
     def __getitem__(self, idx):
         data = np.load(self.datapaths[idx])
