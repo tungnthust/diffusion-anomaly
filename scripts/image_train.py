@@ -36,7 +36,7 @@ def main():
     logger.log("creating data loader...")
 
     if args.dataset == 'brats':
-        ds = BRATSDataset(args.data_dir, test_flag=False)
+        ds = BRATSDataset(args.data_dir, mode="train_healthy", test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,

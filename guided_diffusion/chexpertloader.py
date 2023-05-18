@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 import pickle
+import glob
 
 def normalize(image):
     """Basic min max scaler.
@@ -32,25 +33,26 @@ class BRATSDataset(torch.utils.data.Dataset):
         
         super().__init__()
         self.datapaths = []
-        with open(f'/kaggle/working/diffusion-anomaly/data/brats/{mode}_brats20_datapaths.pickle', 'rb') as fp:
-            self.datapaths = pickle.load(fp)
+        self.mode = mode
+        self.datapaths = glob.glob(f'\kaggle\input\chexpert-data\{mode}\**\*.npz')
         print(f"Number data: {len(self.datapaths)}")
 
     def __getitem__(self, idx):
         data = np.load(self.datapaths[idx])
         image = data['image']
-        image = image[[1, 2, 3, 0], :, :]
-        for i in range(image.shape[0]):
-            image[i] = irm_min_max_preprocess(image[i])
-        mask = data['mask']
-        padding_image = np.zeros((4, 256, 256))
-        padding_image[:, 8:-8, 8:-8] = image
-        padding_mask = np.zeros((256, 256))
-        padding_mask[8:-8, 8:-8] = mask
-        label = 1 if np.sum(mask) > 0 else 0
+        image = image.unsqueeze(0)
+        
+        image[0] = irm_min_max_preprocess(image[0])
+        mask = None
+        label = None
+        if self.mode == 'train':
+            label = data['label']
+        else:
+            label = 1
+            mask = data['mask']
         cond = {}
         cond['y'] = label
-        return np.float32(padding_image), cond, label, np.float32(padding_mask)
+        return np.float32(image), cond, label, np.float32(mask)
 
     def __len__(self):
         return len(self.datapaths)
