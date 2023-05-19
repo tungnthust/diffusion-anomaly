@@ -136,9 +136,7 @@ def main():
             # print('IS BRATS')
 
         elif  args.dataset=='chexpert':
-            batch, extra = next(data_loader)
-            labels = extra["y"].to(dist_util.dev())
-            print('IS CHEXPERT')
+            batch, _, labels, _ = next(data_loader)
 
         # print('labels', labels)
         batch = batch.to(dist_util.dev())
