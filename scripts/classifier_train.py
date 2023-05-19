@@ -107,7 +107,7 @@ def main():
         data = iter(datal)
 
     try:
-        val_ds = CheXpertDataset(args.data_dir, mode="train", test_flag=False)
+        val_ds = CheXpertDataset(args.data_dir, mode="val", test_flag=False)
         val_datal = th.utils.data.DataLoader(
             val_ds,
             batch_size=args.batch_size,
