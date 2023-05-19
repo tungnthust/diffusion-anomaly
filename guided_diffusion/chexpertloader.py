@@ -40,7 +40,7 @@ class CheXpertDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         data = np.load(self.datapaths[idx])
         image = data['image']
-        image = image.unsqueeze(0)
+        image = np.expand_dims(image, axis=0)
         
         image[0] = irm_min_max_preprocess(image[0])
         mask = None
