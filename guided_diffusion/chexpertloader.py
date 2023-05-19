@@ -28,13 +28,13 @@ def irm_min_max_preprocess(image, low_perc=1, high_perc=99):
         image = normalize(image)
     return image
 
-class BRATSDataset(torch.utils.data.Dataset):
+class CheXpertDataset(torch.utils.data.Dataset):
     def __init__(self, directory, mode="train", test_flag=False):
         
         super().__init__()
         self.datapaths = []
         self.mode = mode
-        self.datapaths = glob.glob(f'\kaggle\input\chexpert-data\{mode}\**\*.npz')
+        self.datapaths = glob.glob(f'\kaggle\input\chexpert-data\chexpert-data\{mode}\**\*.npz')
         print(f"Number data: {len(self.datapaths)}")
 
     def __getitem__(self, idx):

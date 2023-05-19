@@ -7,6 +7,8 @@ import torch as th
 sys.path.append("..")
 sys.path.append(".")
 from guided_diffusion.bratsloader import BRATSDataset
+from guided_diffusion.chexpertloader import CheXpertDataset
+
 from guided_diffusion import dist_util, logger
 from guided_diffusion.image_datasets import load_data
 from guided_diffusion.resample import create_named_schedule_sampler
@@ -36,21 +38,23 @@ def main():
     logger.log("creating data loader...")
 
     if args.dataset == 'brats':
-        ds = BRATSDataset(args.data_dir, mode="train_healthy", test_flag=False)
+        print("Training on BRATS-20 dataset")
+        ds = BRATSDataset(args.data_dir, mode="train", test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
             shuffle=True)
-       # data = iter(datal)
+        # data = iter(datal)
 
     elif args.dataset == 'chexpert':
-        datal = load_data(
-            data_dir=args.data_dir,
-            batch_size=1,
-            image_size=args.image_size,
-            class_cond=True,
-        )
-        print('dataset is chexpert')
+        print("Training on CheXpert dataset")
+
+        ds = CheXpertDataset(args.data_dir, mode="train", test_flag=False)
+        datal = th.utils.data.DataLoader(
+            ds,
+            batch_size=args.batch_size,
+            shuffle=True)
+        # data = iter(datal)
 
     logger.log("training...")
     TrainLoop(

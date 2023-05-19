@@ -8,6 +8,8 @@ import sys
 sys.path.append("..")
 sys.path.append(".")
 from guided_diffusion.bratsloader import BRATSDataset
+from guided_diffusion.chexpertloader import CheXpertDataset
+
 import blobfile as bf
 import torch as th
 
@@ -86,6 +88,7 @@ def main():
     logger.log("creating data loader...")
 
     if args.dataset == 'brats':
+        print("Training on BRATS-20 dataset")
         ds = BRATSDataset(args.data_dir, mode="train", test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
@@ -94,13 +97,14 @@ def main():
         data = iter(datal)
 
     elif args.dataset == 'chexpert':
-        data = load_data(
-            data_dir=args.data_dir,
+        print("Training on CheXpert dataset")
+
+        ds = CheXpertDataset(args.data_dir, mode="train", test_flag=False)
+        datal = th.utils.data.DataLoader(
+            ds,
             batch_size=args.batch_size,
-            image_size=args.image_size,
-            class_cond=True,
-        )
-        print('dataset is chexpert')
+            shuffle=True)
+        data = iter(datal)
 
     try:
         val_ds = BRATSDataset(args.data_dir, mode="val", test_flag=False)
