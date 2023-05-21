@@ -48,7 +48,7 @@ class CheXpertDataset(torch.utils.data.Dataset):
         mask = None
         label = None
         if self.mode == 'train':
-            label = data['label']
+            label = int(data['label'])
         else:
             label = 1
             mask = data['mask']
