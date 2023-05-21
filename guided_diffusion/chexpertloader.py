@@ -34,11 +34,8 @@ class CheXpertDataset(torch.utils.data.Dataset):
         super().__init__()
         self.datapaths = []
         self.mode = mode
-        if mode == 'val':
-            with open('/kaggle/working/diffusion-anomaly/data/chexpert/val_paths.pkl', 'rb') as f:
-                self.datapaths = pickle.load(f)
-        else:
-            self.datapaths = glob.glob(f'/kaggle/input/chexpert-data/chexpert-data/{mode}/*.npz')
+        
+        self.datapaths = glob.glob(f'/kaggle/input/chexpert-dataset/chexpert/{mode}/*.npz')
         
         print(f"Number data: {len(self.datapaths)}")
 
@@ -51,7 +48,7 @@ class CheXpertDataset(torch.utils.data.Dataset):
         mask = None
         label = None
         if self.mode == 'train':
-            label = 1 - data['label']
+            label = data['label']
         else:
             label = 1
             mask = data['mask']
