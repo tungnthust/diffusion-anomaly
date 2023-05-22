@@ -140,7 +140,11 @@ def main():
             # print('IS BRATS')
 
         elif  args.dataset=='chexpert':
-            batch, _, labels, _ = next(data_loader)
+            try:
+                batch, _, labels, _ = next(data_loader)
+            except:
+                data_loader = iter(data_load)
+                batch, _, labels, _ = next(data_loader)
 
         # print('labels', labels)
         batch = batch.to(dist_util.dev())
