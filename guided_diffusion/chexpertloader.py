@@ -35,7 +35,9 @@ class CheXpertDataset(torch.utils.data.Dataset):
         self.datapaths = []
         self.mode = mode
         
-        self.datapaths = glob.glob(f'/kaggle/input/chexpert-dataset/chexpert/{mode}/*.npz')[:-500]
+        self.datapaths = glob.glob(f'/kaggle/input/chexpert-dataset/chexpert/{mode}/*.npz')
+        if mode == 'train':
+            self.datapaths = self.datapaths[:-500]
         
         print(f"Number data: {len(self.datapaths)}")
 
