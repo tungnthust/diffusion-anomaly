@@ -48,7 +48,7 @@ class CheXpertDataset(torch.utils.data.Dataset):
         mask = None
         label = None
         if self.mode == 'train':
-            label = data['label']
+            label = int(data['label'])
         else:
             if 'mask' in data.keys():
                 label = 1
@@ -57,7 +57,7 @@ class CheXpertDataset(torch.utils.data.Dataset):
                 label = 0
                 mask = np.zeros((256, 256))
         cond = {}
-        cond['y'] = int(label)
+        cond['y'] = label
         return np.float32(image), cond, label, np.float32(mask)
 
     def __len__(self):
