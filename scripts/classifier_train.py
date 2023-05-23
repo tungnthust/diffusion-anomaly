@@ -253,7 +253,8 @@ def main():
                 with model.no_sync():
                     model.eval()
                     forward_backward_log(val_datal, val_data, prefix="val")
-                    validation_log(val_datal)
+                    val_loss, val_accuracy = validation_log(val_datal)
+                    print(f"Validation loss: {val_loss} - Validation accuracy: {val_accuracy}")
                     model.train()
 
         if not step % args.log_interval:
