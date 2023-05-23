@@ -52,7 +52,10 @@ class CheXpertDataset(torch.utils.data.Dataset):
             label = int(data['label'])
         else:
             label = 1
-            mask = data['mask']
+            try:
+                mask = data['mask']
+            except:
+                label = 0
         cond = {}
         cond['y'] = label
         return np.float32(image), cond, label, np.float32(mask)
