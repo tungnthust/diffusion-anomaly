@@ -129,7 +129,35 @@ def main():
 
     logger.log("training classifier model...")
 
+    def validation_log(val_data_load):
+        data_loader = iter(val_data_load)
+        accuracies = []
+        losses = []
+        data_size = 0
+        for data in data_loader:
+            batch, _, labels, _ = data
+            data_size += batch.shape[0]
+            batch = batch.to(dist_util.dev())
+            labels= labels.to(dist_util.dev())
+            t = th.zeros(batch.shape[0], dtype=th.long, device=dist_util.dev())
+            for i, (sub_batch, sub_labels, sub_t) in enumerate(
+                split_microbatches(args.microbatch, batch, labels, t)
+            ):
+            
+                logits = model(sub_batch, timesteps=sub_t)
+            
+                loss = F.cross_entropy(logits, sub_labels, reduction="none")
+                loss = loss.mean()
 
+                accuracy = compute_top_k(
+                    logits, sub_labels, k=1, reduction="none"
+                )
+                losses.append(loss.mean().item())
+                accuracies.append(accuracy.mean().item())
+        print(f"Validation dataset size: {data_size}")
+
+        return np.mean(losses), np.mean(accuracies)
+    
     def forward_backward_log(data_load, data_loader, prefix="train"):
         if args.dataset=='brats':
             try:
@@ -225,6 +253,7 @@ def main():
                 with model.no_sync():
                     model.eval()
                     forward_backward_log(val_datal, val_data, prefix="val")
+                    validation_log(val_datal)
                     model.train()
 
         if not step % args.log_interval:
