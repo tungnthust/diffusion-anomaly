@@ -44,7 +44,7 @@ class TrainLoop:
         lr_anneal_steps=0,
         dataset='brats',
         max_L=1000,
-        cond_dropout_rate=0.0,
+        cond_dropout_rate=0.35,
     ):
         self.model = model
         self.diffusion = diffusion
@@ -67,7 +67,7 @@ class TrainLoop:
         self.schedule_sampler = schedule_sampler or UniformSampler(diffusion, maxt=max_L)
         self.weight_decay = weight_decay
         self.lr_anneal_steps = lr_anneal_steps
-
+        self.cond_dropout_rate = cond_dropout_rate
         self.step = 0
         self.resume_step = 0
         self.global_batch = self.batch_size * dist.get_world_size()
@@ -200,8 +200,21 @@ class TrainLoop:
         self._anneal_lr()
         self.log_step()
 
+    def conditioning_dropout(self, cond):
+            '''         
+            By setting the self.conditioning_variable to self.num_classes,
+                we are telling the Embedding layer in the model to use non-class informative embedding (padding idx default to 0).
+            '''
+
+            idx2drop = int(cond["y"].shape[0] * self.cond_dropout_rate)
+            cond["y"][th.randint(cond["y"].shape[0], (idx2drop, ))] = self.model.num_classes
+            
+            return cond
+    
     def forward_backward(self, batch, cond):
         self.mp_trainer.zero_grad()
+        if self.cond_dropout_rate != 0:
+            cond = self.conditioning_dropout(cond)
         for i in range(0, batch.shape[0], self.microbatch):
             micro = batch[i : i + self.microbatch].to(dist_util.dev())
             micro_cond = {
