@@ -44,7 +44,7 @@ class TrainLoop:
         lr_anneal_steps=0,
         dataset='brats',
         max_L=1000,
-        cond_dropout_rate = 0.0
+        cond_dropout_rate=0.0,
     ):
         self.model = model
         self.diffusion = diffusion
@@ -170,15 +170,9 @@ class TrainLoop:
             if self.dataset=='brats':
                 try:
                     batch, cond, label, _ = next(self.iterdatal)
-                    if th.cuda.is_available():
-                        batchLL, batchLH, batchHL, batchHH = self.dwt(th.Tensor(batch).cuda())
-                        batch = th.cat((batchLL, batchLH, batchHL, batchHH), dim=1) / 2.0
                 except:
                     self.iterdatal = iter(self.datal)
                     batch, cond, label, _ = next(self.iterdatal)
-                    if th.cuda.is_available():
-                        batchLL, batchLH, batchHL, batchHH = self.dwt(th.Tensor(batch).cuda())
-                        batch = th.cat((batchLL, batchLH, batchHL, batchHH), dim=1) / 2.0
             elif self.dataset=='chexpert':
                 batch, cond = next(self.datal)
                 cond.pop("path", None)
