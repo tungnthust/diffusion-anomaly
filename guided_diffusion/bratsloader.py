@@ -40,12 +40,17 @@ class BRATSDataset(torch.utils.data.Dataset):
         image = data['image']
         image = image[[1, 2, 3, 0], :, :]
         for i in range(image.shape[0]):
+            image[i] = F.interpolate(torch.from_numpy(np.array([[image[i]]])).float(), mode="bilinear", size=(128, 128))[0][0]
+            image[i] = np.array(image[i])
             image[i] = irm_min_max_preprocess(image[i])
         mask = data['mask']
-        padding_image = np.zeros((4, 256, 256))
-        padding_image[:, 8:-8, 8:-8] = image
-        padding_mask = np.zeros((256, 256))
-        padding_mask[8:-8, 8:-8] = mask
+        mask = F.interpolate(torch.from_numpy(np.array([[mask]])).float(), mode="bilinear", size=(128, 128))[0][0]
+        mask = np.array(mask)
+        mask = np.where(mask > 0, 1, 0)
+        # padding_image = np.zeros((4, 256, 256))
+        # padding_image[:, 8:-8, 8:-8] = image
+        # padding_mask = np.zeros((256, 256))
+        # padding_mask[8:-8, 8:-8] = mask
         label = 1 if np.sum(mask) > 0 else 0
         cond = {}
         cond['y'] = label
