@@ -7,7 +7,6 @@ import torch as th
 import torch.distributed as dist
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import AdamW
-from torch.utils.tensorboard import SummaryWriter
 import torchvision
 from typing import Dict
 import matplotlib.pyplot as plt
