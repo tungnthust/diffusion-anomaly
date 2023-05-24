@@ -5,7 +5,6 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from .wavelet_util import DWT_2D
 
 from .fp16_util import convert_module_to_f16, convert_module_to_f32
 from .nn import (
@@ -121,41 +120,41 @@ class Downsample(nn.Module):
     """
 
     def __init__(self, channels, use_conv, dims=2, out_channels=None):
-        # super().__init__()
-        # self.channels = channels
-        # self.out_channels = out_channels or channels
-        # self.use_conv = use_conv
-        # self.dims = dims
-        # stride = 2 if dims != 3 else (1, 2, 2)
-        # if use_conv:
-        #     self.op = conv_nd(
-        #         dims, self.channels, self.out_channels, 3, stride=stride, padding=1
-        #     )
-        # else:
-        #     assert self.channels == self.out_channels
-        #     self.op = avg_pool_nd(dims, kernel_size=stride, stride=stride)
-        
         super().__init__()
-        out_channels = out_channels if out_channels else channels
-        self.dwt = DWT_2D("haar")
+        self.channels = channels
+        self.out_channels = out_channels or channels
+        self.use_conv = use_conv
+        self.dims = dims
+        stride = 2 if dims != 3 else (1, 2, 2)
+        if use_conv:
+            self.op = conv_nd(
+                dims, self.channels, self.out_channels, 3, stride=stride, padding=1
+            )
+        else:
+            assert self.channels == self.out_channels
+            self.op = avg_pool_nd(dims, kernel_size=stride, stride=stride)
+        
+        # super().__init__()
+        # out_channels = out_channels if out_channels else channels
+        # self.dwt = DWT_2D("haar")
 
-        self.weight = nn.Parameter(th.zeros(out_channels, channels * 4, 3, 3))
-        self.weight.data = default_init()(self.weight.data.shape)
-        self.bias = nn.Parameter(th.zeros(out_channels))
+        # self.weight = nn.Parameter(th.zeros(out_channels, channels * 4, 3, 3))
+        # self.weight.data = default_init()(self.weight.data.shape)
+        # self.bias = nn.Parameter(th.zeros(out_channels))
 
-        self.dwt = DWT_2D("haar")
+        # self.dwt = DWT_2D("haar")
 
     def forward(self, x):
-        # assert x.shape[1] == self.channels
-        # return self.op(x)
+        assert x.shape[1] == self.channels
+        return self.op(x)
 
-        xLL, xLH, xHL, xHH = self.dwt(x)
+        # xLL, xLH, xHL, xHH = self.dwt(x)
 
-        x = th.cat((xLL, xLH, xHL, xHH), dim=1) / 2.0
+        # x = th.cat((xLL, xLH, xHL, xHH), dim=1) / 2.0
 
-        x = F.conv2d(x, self.weight, stride=1, padding=1)
-        x = x + self.bias.reshape(1, -1, 1, 1)
-        return x
+        # x = F.conv2d(x, self.weight, stride=1, padding=1)
+        # x = x + self.bias.reshape(1, -1, 1, 1)
+        # return x
     
 def variance_scaling(scale, mode, distribution,
                      in_axis=1, out_axis=0,
