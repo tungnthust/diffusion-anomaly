@@ -17,8 +17,7 @@ from guided_diffusion.script_util import (
     add_dict_to_argparser,
 )
 from guided_diffusion.train_util import TrainLoop
-# from visdom import Visdom
-# viz = Visdom(port=8850)
+import numpy as np
 
 def main():
     args = create_argparser().parse_args()
@@ -32,7 +31,8 @@ def main():
     )
     model.to(dist_util.dev())
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion)
-
+    p1 = np.array([np.array(p.shape).prod() for p in model.parameters()]).sum()
+    print("Number parameters: ", p1)
     logger.log("creating data loader...")
 
     if args.dataset == 'brats':
