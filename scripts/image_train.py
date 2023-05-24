@@ -53,25 +53,7 @@ def main():
         print('dataset is chexpert')
 
     logger.log("training...")
-    TrainLoop(
-        model=model,
-        diffusion=diffusion,
-        data=datal,
-        batch_size=args.batch_size,
-        microbatch=args.microbatch,
-        lr=args.lr,
-        ema_rate=args.ema_rate,
-        log_interval=args.log_interval,
-        save_interval=args.save_interval,
-        resume_checkpoint=args.resume_checkpoint,
-        use_fp16=args.use_fp16,
-        fp16_scale_growth=args.fp16_scale_growth,
-        schedule_sampler=schedule_sampler,
-        weight_decay=args.weight_decay,
-        lr_anneal_steps=args.lr_anneal_steps,
-        dataset=args.dataset,
-        max_L=args.max_L
-    ).run_loop()
+    
     TrainLoop(
         model=model,
         diffusion=diffusion,

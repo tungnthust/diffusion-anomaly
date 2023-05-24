@@ -176,16 +176,12 @@ class TrainLoop:
                 not self.lr_anneal_steps
                 or self.step + self.resume_step < self.iterations
         ):
-            if self.dataset=='brats':
-                try:
-                    batch, cond, label, _ = next(self.iterdatal)
-                except:
-                    self.iterdatal = iter(self.datal)
-                    batch, cond, label, _ = next(self.iterdatal)
-            elif self.dataset=='chexpert':
-                batch, cond = next(self.datal)
-                cond.pop("path", None)
-
+            try:
+                batch, cond, label, _ = next(self.iterdatal)
+            except:
+                self.iterdatal = iter(self.datal)
+                batch, cond, label, _ = next(self.iterdatal)
+            
             self.run_step(batch, cond)
             if self.step % self.save_interval == 0:
                 self.save()
