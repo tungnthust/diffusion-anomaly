@@ -36,7 +36,6 @@ class TrainLoop:
             model,
             diffusion,
             data,
-            data_val,
             batch_size,
             microbatch,
             lr,
@@ -57,7 +56,6 @@ class TrainLoop:
         self.model = model
         self.diffusion = diffusion
         self.data = data
-        self.data_val = data_val
         self.batch_size = batch_size
         self.microbatch = microbatch if microbatch > 0 else batch_size
         self.lr = lr
@@ -186,9 +184,6 @@ class TrainLoop:
             if self.step % self.save_interval == 0:
                 self.save()
             if self.step % self.log_interval == 0:
-                for val_step in range(self.log_interval):
-                    val_data_dict = next(self.data_val)
-                    self.forward_backward(val_data_dict, phase="val")
                 logger.dumpkvs()
             self.step += 1
         # Save the last checkpoint if it wasn't already saved.
