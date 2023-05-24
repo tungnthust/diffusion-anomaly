@@ -23,6 +23,11 @@ from .resample import LossAwareSampler, UniformSampler
 # 20-21 within the first ~1K steps of training.
 INITIAL_LOG_LOSS_SCALE = 20.0
 
+def visualize(img):
+    _min = img.min()
+    _max = img.max()
+    normalized_img = (img - _min)/ (_max - _min)
+    return normalized_img
 
 class TrainLoop:
     def __init__(
