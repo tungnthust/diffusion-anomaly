@@ -1,55 +1,58 @@
 import copy
 import functools
 import os
-
+from random import randint
 import blobfile as bf
 import torch as th
 import torch.distributed as dist
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import AdamW
+from torch.utils.tensorboard import SummaryWriter
+import torchvision
+from typing import Dict
+import matplotlib.pyplot as plt
 
 from . import dist_util, logger
 from .fp16_util import MixedPrecisionTrainer
 from .nn import update_ema
 from .resample import LossAwareSampler, UniformSampler
-# from visdom import Visdom
-# viz = Visdom(port=8850)
 
+
+# For ImageNet experiments, this was a good default value.
+# We found that the lg_loss_scale quickly climbed to
+# 20-21 within the first ~1K steps of training.
 INITIAL_LOG_LOSS_SCALE = 20.0
 
-def visualize(img):
-    _min = img.min()
-    _max = img.max()
-    normalized_img = (img - _min)/ (_max - _min)
-    return normalized_img
 
 class TrainLoop:
     def __init__(
-        self,
-        *,
-        model,
-        diffusion,
-        data,
-        batch_size,
-        microbatch,
-        lr,
-        ema_rate,
-        log_interval,
-        save_interval,
-        resume_checkpoint,
-        use_fp16=False,
-        fp16_scale_growth=1e-3,
-        schedule_sampler=None,
-        weight_decay=0.0,
-        lr_anneal_steps=0,
-        dataset='brats',
-        max_L=1000
+            self,
+            *,
+            model,
+            diffusion,
+            data,
+            data_val,
+            batch_size,
+            microbatch,
+            lr,
+            ema_rate,
+            log_interval,
+            save_interval,
+            resume_checkpoint,
+            use_fp16=False,
+            fp16_scale_growth=1e-3,
+            schedule_sampler=None,
+            weight_decay=0.0,
+            lr_anneal_steps=0,
+            main_data_indentifier: str = "image",
+            cond_dropout_rate: float = 0.0,
+            conditioning_variable: str = "y",
+            iterations: int = 100e3,
     ):
         self.model = model
         self.diffusion = diffusion
-        self.datal = data
-        self.dataset=dataset
-        self.iterdatal = iter(data)
+        self.data = data
+        self.data_val = data_val
         self.batch_size = batch_size
         self.microbatch = microbatch if microbatch > 0 else batch_size
         self.lr = lr
@@ -63,10 +66,15 @@ class TrainLoop:
         self.resume_checkpoint = resume_checkpoint
         self.use_fp16 = use_fp16
         self.fp16_scale_growth = fp16_scale_growth
-        self.schedule_sampler = schedule_sampler or UniformSampler(diffusion, maxt=max_L)
+        self.schedule_sampler = schedule_sampler or UniformSampler(diffusion)
         self.weight_decay = weight_decay
         self.lr_anneal_steps = lr_anneal_steps
+        self.main_data_indentifier = main_data_indentifier
+        self.conditioning_variable = conditioning_variable
+        self.cond_dropout_rate = cond_dropout_rate
+        self.iterations = iterations
 
+        # self.writer = SummaryWriter(logger.get_current() / 'tensorboard')
         self.step = 0
         self.resume_step = 0
         self.global_batch = self.batch_size * dist.get_world_size()
@@ -104,7 +112,7 @@ class TrainLoop:
                 output_device=dist_util.dev(),
                 broadcast_buffers=False,
                 bucket_cap_mb=128,
-                find_unused_parameters=False,
+                find_unused_parameters=True,
             )
         else:
             if dist.get_world_size() > 1:
@@ -119,7 +127,6 @@ class TrainLoop:
         resume_checkpoint = find_resume_checkpoint() or self.resume_checkpoint
 
         if resume_checkpoint:
-            print('resume model')
             self.resume_step = parse_resume_step_from_filename(resume_checkpoint)
             if dist.get_rank() == 0:
                 logger.log(f"loading model from checkpoint: {resume_checkpoint}...")
@@ -160,11 +167,9 @@ class TrainLoop:
             self.opt.load_state_dict(state_dict)
 
     def run_loop(self):
-        i = 0
-
         while (
-            not self.lr_anneal_steps
-            or self.step + self.resume_step < self.lr_anneal_steps
+                not self.lr_anneal_steps
+                or self.step + self.resume_step < self.iterations
         ):
             if self.dataset=='brats':
                 try:
@@ -177,37 +182,59 @@ class TrainLoop:
                 cond.pop("path", None)
 
             self.run_step(batch, cond)
-
-            if self.step % self.log_interval == 0:
-                logger.dumpkvs()
             if self.step % self.save_interval == 0:
                 self.save()
-                # Run for a finite amount of time in integration tests.
-                if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
-                    return
+            if self.step % self.log_interval == 0:
+                for val_step in range(self.log_interval):
+                    val_data_dict = next(self.data_val)
+                    self.forward_backward(val_data_dict, phase="val")
+                logger.dumpkvs()
             self.step += 1
-        
         # Save the last checkpoint if it wasn't already saved.
         if (self.step - 1) % self.save_interval != 0:
             self.save()
 
     def run_step(self, batch, cond):
-        self.forward_backward(batch, cond)
+        self.forward_backward(batch, cond, phase='train')
         took_step = self.mp_trainer.optimize(self.opt)
         if took_step:
             self._update_ema()
         self._anneal_lr()
         self.log_step()
 
-    def forward_backward(self, batch, cond):
+    def conditioning_dropout(self, model_conditionals: Dict):
+        '''         
+        By setting the self.conditioning_variable to self.num_classes,
+            we are telling the Embedding layer in the model to use non-class informative embedding (padding idx default to 0).
+        '''
+
+        idx2drop = int(model_conditionals["y"].shape[0]*self.cond_dropout_rate)
+        model_conditionals["y"][th.randint(model_conditionals["y"].shape[0],(idx2drop,))] = self.model.num_classes
+        
+        return model_conditionals
+        
+
+
+    def forward_backward(self, batch, cond, phase: str = "train"):
+        
+        # self.main_data_indentifier = "image"
+        model_conditionals = cond
+
+        assert phase in ["train", "val"]
+        if phase == "train":
+            self.ddp_model.train()
+            if self.cond_dropout_rate != 0:
+                model_conditionals = self.conditioning_dropout(model_conditionals)
+        else:
+            self.ddp_model.eval()
+        
         self.mp_trainer.zero_grad()
         for i in range(0, batch.shape[0], self.microbatch):
-            micro = batch[i : i + self.microbatch].to(dist_util.dev())
+            micro = batch[i: i + self.microbatch].to(dist_util.dev())
             micro_cond = {
-                k: v[i : i + self.microbatch].to(dist_util.dev())
-                for k, v in cond.items()
+                k: v[i: i + self.microbatch].to(dist_util.dev())
+                for k, v in model_conditionals.items()
             }
-       
             last_batch = (i + self.microbatch) >= batch.shape[0]
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
 
@@ -216,12 +243,11 @@ class TrainLoop:
                 self.ddp_model,
                 micro,
                 t,
-                model_kwargs=micro_cond,
+                model_kwargs=micro_cond
             )
 
             if last_batch or not self.use_ddp:
                 losses = compute_losses()
-
             else:
                 with self.ddp_model.no_sync():
                     losses = compute_losses()
@@ -232,11 +258,11 @@ class TrainLoop:
                 )
 
             loss = (losses["loss"] * weights).mean()
-           
             log_loss_dict(
-                self.diffusion, t, {k: v * weights for k, v in losses.items()}
+                self.diffusion, t, {phase + '_' + k: v * weights for k, v in losses.items()}
             )
-            self.mp_trainer.backward(loss)
+            if phase == "train":
+                self.mp_trainer.backward(loss)
 
     def _update_ema(self):
         for rate, params in zip(self.ema_rate, self.ema_params):
@@ -260,10 +286,9 @@ class TrainLoop:
             if dist.get_rank() == 0:
                 logger.log(f"saving model {rate}...")
                 if not rate:
-                    filename = f"diffusion/model{(self.step+self.resume_step):06d}.pt"
+                    filename = f"model{(self.step + self.resume_step):06d}.pt"
                 else:
-                    filename = f"diffusion/ema_{rate}_{(self.step+self.resume_step):06d}.pt"
-                print('filename', filename)
+                    filename = f"ema_{rate}_{(self.step + self.resume_step):06d}.pt"
                 with bf.BlobFile(bf.join(get_blob_logdir(), filename), "wb") as f:
                     th.save(state_dict, f)
 
@@ -273,12 +298,13 @@ class TrainLoop:
 
         if dist.get_rank() == 0:
             with bf.BlobFile(
-                bf.join(get_blob_logdir(), f"diffusion/opt{(self.step+self.resume_step):06d}.pt"),
-                "wb",
+                    bf.join(get_blob_logdir(), f"opt{(self.step + self.resume_step):06d}.pt"),
+                    "wb",
             ) as f:
                 th.save(self.opt.state_dict(), f)
 
         dist.barrier()
+
 
 
 def parse_resume_step_from_filename(filename):
@@ -308,6 +334,13 @@ def find_resume_checkpoint():
     return None
 
 
+def matplotlib_imshow(img: th.tensor):
+    img = torchvision.utils.make_grid(img.detach().cpu())
+    img = img / 2 + 0.5  # unnormalize
+    npimg = img.numpy()
+    plt.imshow(npimg, cmap="Greys")
+
+
 def find_ema_checkpoint(main_checkpoint, step, rate):
     if main_checkpoint is None:
         return None
@@ -320,8 +353,25 @@ def find_ema_checkpoint(main_checkpoint, step, rate):
 
 def log_loss_dict(diffusion, ts, losses):
     for key, values in losses.items():
-        logger.logkv_mean(key, values.mean().item())
+        values_mean = values.mean()
+        values_cpu = values_mean.to('cpu')
+        values_item = values_cpu.item()
+        logger.logkv_mean(key, values_item)
         # Log the quantiles (four quartiles, in particular).
-        for sub_t, sub_loss in zip(ts.cpu().numpy(), values.detach().cpu().numpy()):
+        '''for sub_t, sub_loss in zip(ts.cpu().numpy(), values.detach().cpu().numpy()):
             quartile = int(4 * sub_t / diffusion.num_timesteps)
-            logger.logkv_mean(f"{key}_q{quartile}", sub_loss)
+            logger.logkv_mean(f"{key}_q{quartile}", sub_loss)'''
+
+
+def get_random_vector_excluding(vector_to_exclude: th.tensor, nb_classes: int = 10):
+    def get_random_number_excluding(exclude):
+        randInt = randint(0, nb_classes)
+        return get_random_number_excluding(exclude) if randInt == exclude else randInt
+
+    new_random_vector = th.tensor([get_random_number_excluding(number) for number in vector_to_exclude]).to()
+    new_random_vector.to(vector_to_exclude.device)
+
+    assert (new_random_vector != vector_to_exclude).all().numpy(), "tensors should be different"
+    assert (new_random_vector.size() == vector_to_exclude.size()), "vectors should have the same size"
+
+    return new_random_vector

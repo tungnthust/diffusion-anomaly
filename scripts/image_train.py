@@ -72,6 +72,24 @@ def main():
         dataset=args.dataset,
         max_L=args.max_L
     ).run_loop()
+    TrainLoop(
+        model=model,
+        diffusion=diffusion,
+        data=datal,
+        batch_size=args.batch_size,
+        microbatch=args.microbatch,
+        lr=args.lr,
+        ema_rate=args.ema_rate,
+        log_interval=args.log_interval,
+        save_interval=args.save_interval,
+        resume_checkpoint=args.resume_checkpoint,
+        use_fp16=args.use_fp16,
+        fp16_scale_growth=args.fp16_scale_growth,
+        schedule_sampler=schedule_sampler,
+        weight_decay=args.weight_decay,
+        lr_anneal_steps=args.lr_anneal_steps,
+        cond_dropout_rate = args.cond_dropout_rate
+    ).run_loop()
 
 
 def create_argparser():
@@ -90,7 +108,8 @@ def create_argparser():
         use_fp16=False,
         fp16_scale_growth=1e-3,
         dataset='brats',
-        max_L=1000
+        max_L=1000,
+        cond_dropout_rate=0.35
     )
     defaults.update(model_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
