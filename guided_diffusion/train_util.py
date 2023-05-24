@@ -207,16 +207,15 @@ class TrainLoop:
             '''
 
             idx2drop = int(cond["y"].shape[0] * self.cond_dropout_rate)
-            cond["y"][th.randint(cond["y"].shape[0], (idx2drop, ))] = self.model.num_classes
+            cond["y"][th.randint(cond["y"].shape[0], (idx2drop, ))] = -1
             
             return cond
     
     def forward_backward(self, batch, cond):
         self.mp_trainer.zero_grad()
-        print(cond)
-        # if self.cond_dropout_rate != 0:
-        #     cond = self.conditioning_dropout(cond)
-        #     print(cond)
+        if self.cond_dropout_rate != 0:
+            cond = self.conditioning_dropout(cond)
+            print(cond)
         for i in range(0, batch.shape[0], self.microbatch):
             micro = batch[i : i + self.microbatch].to(dist_util.dev())
             micro_cond = {
