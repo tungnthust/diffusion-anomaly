@@ -55,7 +55,8 @@ class TrainLoop:
     ):
         self.model = model
         self.diffusion = diffusion
-        self.data = data
+        self.datal = data
+        self.iterdatal = iter(data)
         self.batch_size = batch_size
         self.microbatch = microbatch if microbatch > 0 else batch_size
         self.lr = lr
