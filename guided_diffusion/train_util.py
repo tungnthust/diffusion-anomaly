@@ -177,7 +177,7 @@ class TrainLoop:
                 batch, cond = next(self.datal)
                 cond.pop("path", None)
             if self.cond_dropout_rate != 0:
-                cond['y'] = th.Tensor([1, 2, 2, 0, 0]).to(th.IntTensor)
+                cond['y'] = th.Tensor([1, 2, 2, 0, 0]).to(th.int)
             self.run_step(batch, cond)
 
             if self.step % self.log_interval == 0:
