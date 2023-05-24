@@ -343,14 +343,11 @@ def find_ema_checkpoint(main_checkpoint, step, rate):
 
 def log_loss_dict(diffusion, ts, losses):
     for key, values in losses.items():
-        values_mean = values.mean()
-        values_cpu = values_mean.to('cpu')
-        values_item = values_cpu.item()
-        logger.logkv_mean(key, values_item)
+        logger.logkv_mean(key, values.mean().item())
         # Log the quantiles (four quartiles, in particular).
-        '''for sub_t, sub_loss in zip(ts.cpu().numpy(), values.detach().cpu().numpy()):
+        for sub_t, sub_loss in zip(ts.cpu().numpy(), values.detach().cpu().numpy()):
             quartile = int(4 * sub_t / diffusion.num_timesteps)
-            logger.logkv_mean(f"{key}_q{quartile}", sub_loss)'''
+            logger.logkv_mean(f"{key}_q{quartile}", sub_loss)
 
 
 def get_random_vector_excluding(vector_to_exclude: th.tensor, nb_classes: int = 10):
