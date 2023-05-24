@@ -176,7 +176,9 @@ class TrainLoop:
             elif self.dataset=='chexpert':
                 batch, cond = next(self.datal)
                 cond.pop("path", None)
-
+            if self.cond_dropout_rate != 0:
+                cond = self.conditioning_dropout(cond)
+                print(cond)
             self.run_step(batch, cond)
 
             if self.step % self.log_interval == 0:
@@ -213,10 +215,6 @@ class TrainLoop:
     
     def forward_backward(self, batch, cond):
         self.mp_trainer.zero_grad()
-        # with th.no_grad():
-        #     if self.cond_dropout_rate != 0:
-        #         cond = self.conditioning_dropout(cond)
-        #         print(cond)
         for i in range(0, batch.shape[0], self.microbatch):
             micro = batch[i : i + self.microbatch].to(dist_util.dev())
             micro_cond = {
