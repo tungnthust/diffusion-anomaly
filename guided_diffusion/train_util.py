@@ -14,7 +14,6 @@ from .nn import update_ema
 from .resample import LossAwareSampler, UniformSampler
 # from visdom import Visdom
 # viz = Visdom(port=8850)
-from .wavelet_util import DWT_2D
 
 INITIAL_LOG_LOSS_SCALE = 20.0
 
@@ -68,7 +67,6 @@ class TrainLoop:
         self.schedule_sampler = schedule_sampler or UniformSampler(diffusion, maxt=max_L)
         self.weight_decay = weight_decay
         self.lr_anneal_steps = lr_anneal_steps
-        self.dwt = DWT_2D("haar")
 
         self.step = 0
         self.resume_step = 0
