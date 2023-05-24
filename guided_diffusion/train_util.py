@@ -1,25 +1,21 @@
 import copy
 import functools
 import os
-from random import randint
+
 import blobfile as bf
 import torch as th
 import torch.distributed as dist
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import AdamW
-import torchvision
-from typing import Dict
-import matplotlib.pyplot as plt
 
 from . import dist_util, logger
 from .fp16_util import MixedPrecisionTrainer
 from .nn import update_ema
 from .resample import LossAwareSampler, UniformSampler
+# from visdom import Visdom
+# viz = Visdom(port=8850)
+from .wavelet_util import DWT_2D
 
-
-# For ImageNet experiments, this was a good default value.
-# We found that the lg_loss_scale quickly climbed to
-# 20-21 within the first ~1K steps of training.
 INITIAL_LOG_LOSS_SCALE = 20.0
 
 def visualize(img):
@@ -30,31 +26,31 @@ def visualize(img):
 
 class TrainLoop:
     def __init__(
-            self,
-            *,
-            model,
-            diffusion,
-            data,
-            batch_size,
-            microbatch,
-            lr,
-            ema_rate,
-            log_interval,
-            save_interval,
-            resume_checkpoint,
-            use_fp16=False,
-            fp16_scale_growth=1e-3,
-            schedule_sampler=None,
-            weight_decay=0.0,
-            lr_anneal_steps=0,
-            main_data_indentifier: str = "image",
-            cond_dropout_rate: float = 0.0,
-            conditioning_variable: str = "y",
-            iterations: int = 100e3,
+        self,
+        *,
+        model,
+        diffusion,
+        data,
+        batch_size,
+        microbatch,
+        lr,
+        ema_rate,
+        log_interval,
+        save_interval,
+        resume_checkpoint,
+        use_fp16=False,
+        fp16_scale_growth=1e-3,
+        schedule_sampler=None,
+        weight_decay=0.0,
+        lr_anneal_steps=0,
+        dataset='brats',
+        max_L=1000,
+        cond_dropout_rate = 0.0
     ):
         self.model = model
         self.diffusion = diffusion
         self.datal = data
+        self.dataset=dataset
         self.iterdatal = iter(data)
         self.batch_size = batch_size
         self.microbatch = microbatch if microbatch > 0 else batch_size
@@ -69,15 +65,11 @@ class TrainLoop:
         self.resume_checkpoint = resume_checkpoint
         self.use_fp16 = use_fp16
         self.fp16_scale_growth = fp16_scale_growth
-        self.schedule_sampler = schedule_sampler or UniformSampler(diffusion)
+        self.schedule_sampler = schedule_sampler or UniformSampler(diffusion, maxt=max_L)
         self.weight_decay = weight_decay
         self.lr_anneal_steps = lr_anneal_steps
-        self.main_data_indentifier = main_data_indentifier
-        self.conditioning_variable = conditioning_variable
-        self.cond_dropout_rate = cond_dropout_rate
-        self.iterations = iterations
+        self.dwt = DWT_2D("haar")
 
-        # self.writer = SummaryWriter(logger.get_current() / 'tensorboard')
         self.step = 0
         self.resume_step = 0
         self.global_batch = self.batch_size * dist.get_world_size()
@@ -115,7 +107,7 @@ class TrainLoop:
                 output_device=dist_util.dev(),
                 broadcast_buffers=False,
                 bucket_cap_mb=128,
-                find_unused_parameters=True,
+                find_unused_parameters=False,
             )
         else:
             if dist.get_world_size() > 1:
@@ -130,6 +122,7 @@ class TrainLoop:
         resume_checkpoint = find_resume_checkpoint() or self.resume_checkpoint
 
         if resume_checkpoint:
+            print('resume model')
             self.resume_step = parse_resume_step_from_filename(resume_checkpoint)
             if dist.get_rank() == 0:
                 logger.log(f"loading model from checkpoint: {resume_checkpoint}...")
@@ -170,22 +163,39 @@ class TrainLoop:
             self.opt.load_state_dict(state_dict)
 
     def run_loop(self):
+        i = 0
+
         while (
-                not self.lr_anneal_steps
-                or self.step + self.resume_step < self.iterations
+            not self.lr_anneal_steps
+            or self.step + self.resume_step < self.lr_anneal_steps
         ):
-            try:
-                batch, cond, label, _ = next(self.iterdatal)
-            except:
-                self.iterdatal = iter(self.datal)
-                batch, cond, label, _ = next(self.iterdatal)
-            
+            if self.dataset=='brats':
+                try:
+                    batch, cond, label, _ = next(self.iterdatal)
+                    if th.cuda.is_available():
+                        batchLL, batchLH, batchHL, batchHH = self.dwt(th.Tensor(batch).cuda())
+                        batch = th.cat((batchLL, batchLH, batchHL, batchHH), dim=1) / 2.0
+                except:
+                    self.iterdatal = iter(self.datal)
+                    batch, cond, label, _ = next(self.iterdatal)
+                    if th.cuda.is_available():
+                        batchLL, batchLH, batchHL, batchHH = self.dwt(th.Tensor(batch).cuda())
+                        batch = th.cat((batchLL, batchLH, batchHL, batchHH), dim=1) / 2.0
+            elif self.dataset=='chexpert':
+                batch, cond = next(self.datal)
+                cond.pop("path", None)
+
             self.run_step(batch, cond)
-            if self.step % self.save_interval == 0:
-                self.save()
+
             if self.step % self.log_interval == 0:
                 logger.dumpkvs()
+            if self.step % self.save_interval == 0:
+                self.save()
+                # Run for a finite amount of time in integration tests.
+                if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
+                    return
             self.step += 1
+        
         # Save the last checkpoint if it wasn't already saved.
         if (self.step - 1) % self.save_interval != 0:
             self.save()
@@ -198,33 +208,15 @@ class TrainLoop:
         self._anneal_lr()
         self.log_step()
 
-    def conditioning_dropout(self, cond: Dict):
-        '''         
-        By setting the self.conditioning_variable to self.num_classes,
-            we are telling the Embedding layer in the model to use non-class informative embedding (padding idx default to 0).
-        '''
-
-        idx2drop = int(cond["y"].shape[0] * self.cond_dropout_rate)
-        cond["y"][th.randint(cond["y"].shape[0], (idx2drop, ))] = self.model.num_classes
-        
-        return cond
-        
-
-
     def forward_backward(self, batch, cond):
-        
-        # self.main_data_indentifier = "image"
-        
-        if self.cond_dropout_rate != 0:
-            cond = self.conditioning_dropout(cond)
-        
         self.mp_trainer.zero_grad()
         for i in range(0, batch.shape[0], self.microbatch):
-            micro = batch[i: i + self.microbatch].to(dist_util.dev())
+            micro = batch[i : i + self.microbatch].to(dist_util.dev())
             micro_cond = {
-                k: v[i: i + self.microbatch].to(dist_util.dev())
+                k: v[i : i + self.microbatch].to(dist_util.dev())
                 for k, v in cond.items()
             }
+       
             last_batch = (i + self.microbatch) >= batch.shape[0]
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
 
@@ -233,11 +225,12 @@ class TrainLoop:
                 self.ddp_model,
                 micro,
                 t,
-                model_kwargs=micro_cond
+                model_kwargs=micro_cond,
             )
 
             if last_batch or not self.use_ddp:
                 losses = compute_losses()
+
             else:
                 with self.ddp_model.no_sync():
                     losses = compute_losses()
@@ -248,10 +241,10 @@ class TrainLoop:
                 )
 
             loss = (losses["loss"] * weights).mean()
+           
             log_loss_dict(
                 self.diffusion, t, {k: v * weights for k, v in losses.items()}
             )
-            
             self.mp_trainer.backward(loss)
 
     def _update_ema(self):
@@ -276,9 +269,10 @@ class TrainLoop:
             if dist.get_rank() == 0:
                 logger.log(f"saving model {rate}...")
                 if not rate:
-                    filename = f"model{(self.step + self.resume_step):06d}.pt"
+                    filename = f"diffusion/model{(self.step+self.resume_step):06d}.pt"
                 else:
-                    filename = f"ema_{rate}_{(self.step + self.resume_step):06d}.pt"
+                    filename = f"diffusion/ema_{rate}_{(self.step+self.resume_step):06d}.pt"
+                print('filename', filename)
                 with bf.BlobFile(bf.join(get_blob_logdir(), filename), "wb") as f:
                     th.save(state_dict, f)
 
@@ -288,13 +282,12 @@ class TrainLoop:
 
         if dist.get_rank() == 0:
             with bf.BlobFile(
-                    bf.join(get_blob_logdir(), f"opt{(self.step + self.resume_step):06d}.pt"),
-                    "wb",
+                bf.join(get_blob_logdir(), f"diffusion/opt{(self.step+self.resume_step):06d}.pt"),
+                "wb",
             ) as f:
                 th.save(self.opt.state_dict(), f)
 
         dist.barrier()
-
 
 
 def parse_resume_step_from_filename(filename):
@@ -324,13 +317,6 @@ def find_resume_checkpoint():
     return None
 
 
-def matplotlib_imshow(img: th.tensor):
-    img = torchvision.utils.make_grid(img.detach().cpu())
-    img = img / 2 + 0.5  # unnormalize
-    npimg = img.numpy()
-    plt.imshow(npimg, cmap="Greys")
-
-
 def find_ema_checkpoint(main_checkpoint, step, rate):
     if main_checkpoint is None:
         return None
@@ -348,17 +334,3 @@ def log_loss_dict(diffusion, ts, losses):
         for sub_t, sub_loss in zip(ts.cpu().numpy(), values.detach().cpu().numpy()):
             quartile = int(4 * sub_t / diffusion.num_timesteps)
             logger.logkv_mean(f"{key}_q{quartile}", sub_loss)
-
-
-def get_random_vector_excluding(vector_to_exclude: th.tensor, nb_classes: int = 10):
-    def get_random_number_excluding(exclude):
-        randInt = randint(0, nb_classes)
-        return get_random_number_excluding(exclude) if randInt == exclude else randInt
-
-    new_random_vector = th.tensor([get_random_number_excluding(number) for number in vector_to_exclude]).to()
-    new_random_vector.to(vector_to_exclude.device)
-
-    assert (new_random_vector != vector_to_exclude).all().numpy(), "tensors should be different"
-    assert (new_random_vector.size() == vector_to_exclude.size()), "vectors should have the same size"
-
-    return new_random_vector
