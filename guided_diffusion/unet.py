@@ -365,6 +365,7 @@ class UNetModel(nn.Module):
         use_scale_shift_norm=False,
         resblock_updown=False,
         image_level_cond: bool = False,
+        use_new_attention_order=False,
     ):
         super().__init__()
 
