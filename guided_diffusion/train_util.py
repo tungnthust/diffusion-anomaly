@@ -191,45 +191,39 @@ class TrainLoop:
             self.save()
 
     def run_step(self, batch, cond):
-        self.forward_backward(batch, cond, phase='train')
+        self.forward_backward(batch, cond)
         took_step = self.mp_trainer.optimize(self.opt)
         if took_step:
             self._update_ema()
         self._anneal_lr()
         self.log_step()
 
-    def conditioning_dropout(self, model_conditionals: Dict):
+    def conditioning_dropout(self, cond: Dict):
         '''         
         By setting the self.conditioning_variable to self.num_classes,
             we are telling the Embedding layer in the model to use non-class informative embedding (padding idx default to 0).
         '''
 
-        idx2drop = int(model_conditionals["y"].shape[0]*self.cond_dropout_rate)
-        model_conditionals["y"][th.randint(model_conditionals["y"].shape[0],(idx2drop,))] = self.model.num_classes
+        idx2drop = int(cond["y"].shape[0] * self.cond_dropout_rate)
+        cond["y"][th.randint(cond["y"].shape[0], (idx2drop, ))] = self.model.num_classes
         
-        return model_conditionals
+        return cond
         
 
 
-    def forward_backward(self, batch, cond, phase: str = "train"):
+    def forward_backward(self, batch, cond):
         
         # self.main_data_indentifier = "image"
-        model_conditionals = cond
-
-        assert phase in ["train", "val"]
-        if phase == "train":
-            self.ddp_model.train()
-            if self.cond_dropout_rate != 0:
-                model_conditionals = self.conditioning_dropout(model_conditionals)
-        else:
-            self.ddp_model.eval()
+        
+        if self.cond_dropout_rate != 0:
+            cond = self.conditioning_dropout(cond)
         
         self.mp_trainer.zero_grad()
         for i in range(0, batch.shape[0], self.microbatch):
             micro = batch[i: i + self.microbatch].to(dist_util.dev())
             micro_cond = {
                 k: v[i: i + self.microbatch].to(dist_util.dev())
-                for k, v in model_conditionals.items()
+                for k, v in cond.items()
             }
             last_batch = (i + self.microbatch) >= batch.shape[0]
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
@@ -255,10 +249,10 @@ class TrainLoop:
 
             loss = (losses["loss"] * weights).mean()
             log_loss_dict(
-                self.diffusion, t, {phase + '_' + k: v * weights for k, v in losses.items()}
+                self.diffusion, t, {k: v * weights for k, v in losses.items()}
             )
-            if phase == "train":
-                self.mp_trainer.backward(loss)
+            
+            self.mp_trainer.backward(loss)
 
     def _update_ema(self):
         for rate, params in zip(self.ema_rate, self.ema_params):
