@@ -5,7 +5,7 @@ import torch as th
 import torch.distributed as dist
 
 
-def create_named_schedule_sampler(name, diffusion, maxt):
+def create_named_schedule_sampler(name, diffusion):
     """
     Create a ScheduleSampler from a library of pre-defined samplers.
 
@@ -13,7 +13,7 @@ def create_named_schedule_sampler(name, diffusion, maxt):
     :param diffusion: the diffusion object to sample for.
     """
     if name == "uniform":
-        return UniformSampler(diffusion, maxt)
+        return UniformSampler(diffusion)
     elif name == "loss-second-moment":
         return LossSecondMomentResampler(diffusion)
     else:
@@ -59,9 +59,9 @@ class ScheduleSampler(ABC):
 
 
 class UniformSampler(ScheduleSampler):
-    def __init__(self, diffusion, maxt):
+    def __init__(self, diffusion):
         self.diffusion = diffusion
-        self._weights = np.ones([maxt])
+        self._weights = np.ones([diffusion.num_timesteps])
 
     def weights(self):
         return self._weights
