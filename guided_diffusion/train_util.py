@@ -213,7 +213,7 @@ class TrainLoop:
     
     def forward_backward(self, batch, cond):
         self.mp_trainer.zero_grad()
-        
+        print(cond)
         # if self.cond_dropout_rate != 0:
         #     cond = self.conditioning_dropout(cond)
         #     print(cond)
