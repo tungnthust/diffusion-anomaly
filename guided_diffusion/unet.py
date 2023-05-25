@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .fp16_util import convert_module_to_f16, convert_module_to_f32
-from .nn import avg_pool_nd, conv_nd, linear, normalization, timestep_embedding, zero_module
+from .nn import avg_pool_nd, conv_nd, linear, normalization, timestep_embedding, zero_module, checkpoint
 
 class AttentionPool2d(nn.Module):
     """
@@ -213,6 +213,18 @@ class ResBlock(TimestepBlock):
         :param emb: an [N x emb_channels] Tensor of timestep embeddings.
         :return: an [N x C x ...] Tensor of outputs.
         """
+        return checkpoint(
+            self._forward, (x, emb), self.parameters(), self.use_checkpoint
+        )
+    
+    def _forward(self, x, emb):
+        """
+        Apply the block to a Tensor, conditioned on a timestep embedding.
+
+        :param x: an [N x C x ...] Tensor of features.
+        :param emb: an [N x emb_channels] Tensor of timestep embeddings.
+        :return: an [N x C x ...] Tensor of outputs.
+        """
         if self.updown:
             in_rest, in_conv = self.in_layers[:-1], self.in_layers[-1]
             h = in_rest(x)
@@ -268,8 +280,11 @@ class AttentionBlock(nn.Module):
         if encoder_channels is not None:
             self.encoder_kv = conv_nd(1, encoder_channels, channels * 2, 1)
         self.proj_out = zero_module(conv_nd(1, channels, channels, 1))
-
+        
     def forward(self, x, encoder_out=None):
+        return checkpoint(self._forward, (x, encoder_out), self.parameters(), True)
+    
+    def _forward(self, x, encoder_out=None):
         b, c, *spatial = x.shape
         qkv = self.qkv(self.norm(x).view(b, c, -1))
         if encoder_out is not None:
