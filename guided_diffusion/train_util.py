@@ -215,7 +215,6 @@ class TrainLoop:
         self.mp_trainer.zero_grad()
         if self.cond_dropout_rate != 0:
             cond = self.conditioning_dropout(cond)
-            print(cond)
         for i in range(0, batch.shape[0], self.microbatch):
             micro = batch[i : i + self.microbatch].to(dist_util.dev())
             micro_cond = {
