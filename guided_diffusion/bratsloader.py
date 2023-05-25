@@ -39,24 +39,17 @@ class BRATSDataset(torch.utils.data.Dataset):
         data = np.load(self.datapaths[idx])
         image = data['image']
         image = image[[1, 2, 3, 0], :, :]
-        resized_image = []
         for i in range(image.shape[0]):
-            temp = F.interpolate(torch.from_numpy(np.array([[image[i]]])).float(), mode="bilinear", size=(64, 64))[0][0]
-            temp = np.array(temp)
-            resized_image.append(irm_min_max_preprocess(temp))
-        image = np.array(resized_image)
+            image[i] = irm_min_max_preprocess(image[i])
         mask = data['mask']
-        mask = F.interpolate(torch.from_numpy(np.array([[mask]])).float(), mode="bilinear", size=(64, 64))[0][0]
-        mask = np.array(mask)
-        mask = np.where(mask > 0, 1, 0)
-        # padding_image = np.zeros((4, 256, 256))
-        # padding_image[:, 8:-8, 8:-8] = image
-        # padding_mask = np.zeros((256, 256))
-        # padding_mask[8:-8, 8:-8] = mask
+        padding_image = np.zeros((4, 256, 256))
+        padding_image[:, 8:-8, 8:-8] = image
+        padding_mask = np.zeros((256, 256))
+        padding_mask[8:-8, 8:-8] = mask
         label = 1 if np.sum(mask) > 0 else 0
         cond = {}
         cond['y'] = label
-        return np.float32(image), cond, label, np.float32(mask)
+        return np.float32(padding_image), cond, label, np.float32(padding_mask)
 
     def __len__(self):
         return len(self.datapaths)
