@@ -207,7 +207,7 @@ class TrainLoop:
             '''
 
             idx2drop = int(cond["y"].shape[0] * self.cond_dropout_rate)
-            cond["y"][th.randint(cond["y"].shape[0], (idx2drop, ))] = self.model.num_classes
+            cond["y"][th.randint(cond["y"].shape[0], (idx2drop, ))] = 0.5
             
             return cond
     
