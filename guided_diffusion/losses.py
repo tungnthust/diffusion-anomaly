@@ -9,7 +9,6 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-
 ALPHA = 0.8
 GAMMA = 2
 
@@ -20,14 +19,14 @@ class FocalLoss(nn.Module):
     def forward(self, inputs, targets, alpha=ALPHA, gamma=GAMMA, smooth=1):
         
         #comment out if your model contains a sigmoid or equivalent activation layer
-        inputs = F.sigmoid(inputs)       
+        # inputs = F.softmax(inputs)       
         
         #flatten label and prediction tensors
-        inputs = inputs.view(-1)
-        targets = targets.view(-1)
+        # inputs = inputs.view(-1)
+        # targets = targets.view(-1)
         
         #first compute binary cross-entropy 
-        BCE = F.binary_cross_entropy(inputs, targets, reduction='mean')
+        BCE = F.cross_entropy(inputs, targets, reduction='none')
         BCE_EXP = th.exp(-BCE)
         focal_loss = alpha * (1-BCE_EXP)**gamma * BCE
                        
