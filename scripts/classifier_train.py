@@ -12,7 +12,7 @@ from guided_diffusion.litsloader import LiTSDataset
 
 import blobfile as bf
 import torch as th
-
+from guided_diffusion.losses import FocalLoss
 import torch.distributed as dist
 import torch.nn.functional as F
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
@@ -75,7 +75,7 @@ def main():
         model=model, use_fp16=args.classifier_use_fp16, initial_lg_loss_scale=16.0
     )
 
-    
+    focal_loss = FocalLoss()
     model = DDP(
         model,
         device_ids=[dist_util.dev()],
@@ -181,7 +181,9 @@ def main():
           
             logits = model(sub_batch, timesteps=sub_t)
          
-            loss = F.cross_entropy(logits, sub_labels, reduction="none")
+            # loss = F.cross_entropy(logits, sub_labels, reduction="none")
+            loss = focal_loss(logits, sub_labels)
+
             losses = {}
             losses[f"{prefix}_loss"] = loss.detach()
             losses[f"{prefix}_acc@1"] = compute_top_k(
