@@ -159,20 +159,11 @@ def main():
         return np.mean(losses), np.mean(accuracies)
     
     def forward_backward_log(data_load, data_loader, prefix="train"):
-        if args.dataset=='brats':
-            try:
-                batch, _, labels, _ = next(data_loader)
-            except:
-                data_loader = iter(data_load)
-                batch, _, labels, _ = next(data_loader)
-            # print('IS BRATS')
-
-        elif  args.dataset=='chexpert':
-            try:
-                batch, _, labels, _ = next(data_loader)
-            except:
-                data_loader = iter(data_load)
-                batch, _, labels, _ = next(data_loader)
+        try:
+            batch, _, labels, _ = next(data_loader)
+        except:
+            data_loader = iter(data_load)
+            batch, _, labels, _ = next(data_loader)
 
         # print('labels', labels)
         batch = batch.to(dist_util.dev())
