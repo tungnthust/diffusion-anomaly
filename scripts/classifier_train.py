@@ -9,7 +9,7 @@ sys.path.append("..")
 sys.path.append(".")
 from guided_diffusion.bratsloader import BRATSDataset
 from guided_diffusion.litsloader import LiTSDataset
-
+from torchvision.ops import focal_loss 
 import blobfile as bf
 import torch as th
 from guided_diffusion.losses import FocalLoss
@@ -75,7 +75,7 @@ def main():
         model=model, use_fp16=args.classifier_use_fp16, initial_lg_loss_scale=16.0
     )
 
-    focal_loss = FocalLoss()
+    # focal_loss = FocalLoss()
     model = DDP(
         model,
         device_ids=[dist_util.dev()],
@@ -182,7 +182,7 @@ def main():
             logits = model(sub_batch, timesteps=sub_t)
          
             # loss = F.cross_entropy(logits, sub_labels, reduction="none")
-            loss = focal_loss(logits, sub_labels)
+            loss = focal_loss(logits, sub_labels, reduction="none")
 
             losses = {}
             losses[f"{prefix}_loss"] = loss.detach()
