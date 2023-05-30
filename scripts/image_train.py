@@ -7,7 +7,7 @@ import torch as th
 sys.path.append("..")
 sys.path.append(".")
 from guided_diffusion.bratsloader import BRATSDataset
-from guided_diffusion.chexpertloader import CheXpertDataset
+from guided_diffusion.litsloader import LiTSDataset
 
 from guided_diffusion import dist_util, logger
 from guided_diffusion.image_datasets import load_data
@@ -46,15 +46,14 @@ def main():
             shuffle=True)
         # data = iter(datal)
 
-    elif args.dataset == 'chexpert':
+    elif args.dataset == 'lits':
         print("Training on CheXpert dataset")
 
-        ds = CheXpertDataset(args.data_dir, mode="train", test_flag=False)
+        ds = LiTSDataset(args.data_dir, mode="train", test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
             shuffle=True)
-        # data = iter(datal)
 
     logger.log("training...")
     TrainLoop(
