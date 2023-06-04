@@ -12,7 +12,7 @@ from guided_diffusion.bratsloader import BRATSDataset
 
 import blobfile as bf
 import torch as th
-from guided_diffusion.losses import FocalLoss
+# from guided_diffusion.losses import FocalLoss
 import torch.distributed as dist
 import torch.nn.functional as F
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
