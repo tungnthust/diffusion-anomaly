@@ -8,7 +8,7 @@ import sys
 sys.path.append("..")
 sys.path.append(".")
 from guided_diffusion.bratsloader import BRATSDataset
-from guided_diffusion.litsloader import LiTSDataset
+# from guided_diffusion.litsloader import LiTSDataset
 
 import blobfile as bf
 import torch as th
