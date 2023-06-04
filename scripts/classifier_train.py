@@ -8,9 +8,11 @@ import sys
 sys.path.append("..")
 sys.path.append(".")
 from guided_diffusion.bratsloader import BRATSDataset
+from guided_diffusion.litsloader import LiTSDataset
+
 import blobfile as bf
 import torch as th
-
+from guided_diffusion.losses import FocalLoss
 import torch.distributed as dist
 import torch.nn.functional as F
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
@@ -73,7 +75,6 @@ def main():
         model=model, use_fp16=args.classifier_use_fp16, initial_lg_loss_scale=16.0
     )
 
-    
     model = DDP(
         model,
         device_ids=[dist_util.dev()],
@@ -86,6 +87,7 @@ def main():
     logger.log("creating data loader...")
 
     if args.dataset == 'brats':
+        print("Training on BRATS-20 dataset")
         ds = BRATSDataset(args.data_dir, mode="train", test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
@@ -93,17 +95,18 @@ def main():
             shuffle=True)
         data = iter(datal)
 
-    elif args.dataset == 'chexpert':
-        data = load_data(
-            data_dir=args.data_dir,
-            batch_size=args.batch_size,
-            image_size=args.image_size,
-            class_cond=True,
-        )
-        print('dataset is chexpert')
+    # elif args.dataset == 'lits':
+    #     print("Training on LiTS dataset")
+
+    #     ds = LiTSDataset(args.data_dir, mode="train", test_flag=False)
+    #     datal = th.utils.data.DataLoader(
+    #         ds,
+    #         batch_size=args.batch_size,
+    #         shuffle=True)
+    #     data = iter(datal)
 
     try:
-        val_ds = BRATSDataset(args.data_dir, mode="val", test_flag=False)
+        val_ds = BRATSDataset(args.data_dir, mode="val_full", test_flag=False)
         val_datal = th.utils.data.DataLoader(
             val_ds,
             batch_size=args.batch_size,
@@ -125,16 +128,41 @@ def main():
 
     logger.log("training classifier model...")
 
+    def validation_log(val_data_load):
+        data_loader = iter(val_data_load)
+        accuracies = []
+        losses = []
+        data_size = 0
+        for data in data_loader:
+            batch, _, labels, _ = data
+            data_size += batch.shape[0]
+            batch = batch.to(dist_util.dev())
+            labels= labels.to(dist_util.dev())
+            t = th.zeros(batch.shape[0], dtype=th.long, device=dist_util.dev())
+            for i, (sub_batch, sub_labels, sub_t) in enumerate(
+                split_microbatches(args.microbatch, batch, labels, t)
+            ):
+            
+                logits = model(sub_batch, timesteps=sub_t)
+            
+                loss = F.cross_entropy(logits, sub_labels, reduction="none")
+                loss = loss.mean()
 
-    def forward_backward_log(data_loader, prefix="train"):
-        if args.dataset=='brats':
+                accuracy = compute_top_k(
+                    logits, sub_labels, k=1, reduction="none"
+                )
+                losses.append(loss.mean().item())
+                accuracies.append(accuracy.mean().item())
+        print(f"Validation dataset size: {data_size}")
+
+        return np.mean(losses), np.mean(accuracies)
+    
+    def forward_backward_log(data_load, data_loader, prefix="train"):
+        try:
             batch, _, labels, _ = next(data_loader)
-            # print('IS BRATS')
-
-        elif  args.dataset=='chexpert':
-            batch, extra = next(data_loader)
-            labels = extra["y"].to(dist_util.dev())
-            print('IS CHEXPERT')
+        except:
+            data_loader = iter(data_load)
+            batch, _, labels, _ = next(data_loader)
 
         # print('labels', labels)
         batch = batch.to(dist_util.dev())
@@ -202,11 +230,8 @@ def main():
         if args.anneal_lr:
             set_annealed_lr(opt, args.lr, (step + resume_step) / args.iterations)
         # print('step', step + resume_step)
-        try:
-            losses = forward_backward_log(data)
-        except:
-            data = iter(datal)
-            losses = forward_backward_log(data)
+        
+        losses = forward_backward_log(datal, data)
 
         correct+=losses["train_acc@1"].sum()
         total+=args.batch_size
@@ -217,7 +242,9 @@ def main():
             with th.no_grad():
                 with model.no_sync():
                     model.eval()
-                    forward_backward_log(val_data, prefix="val")
+                    forward_backward_log(val_datal, val_data, prefix="val")
+                    val_loss, val_accuracy = validation_log(val_datal)
+                    print(f"Validation loss: {val_loss} - Validation accuracy: {val_accuracy}")
                     model.train()
 
         if not step % args.log_interval:
