@@ -11,8 +11,7 @@ import torch.nn.functional as F
 from torchvision.utils import save_image
 import torch
 import math
-# from visdom import Visdom
-# viz = Visdom(port=8850)
+import random
 import numpy as np
 import torch as th
 from .train_util import visualize
@@ -21,6 +20,8 @@ from .losses import normal_kl, discretized_gaussian_log_likelihood
 from scipy import ndimage
 from torchvision import transforms
 import matplotlib.pyplot as plt
+from .simplex_noise import Simplex_CLASS
+
 def standardize(img):
     mean = th.mean(img)
     std = th.std(img)
@@ -80,6 +81,49 @@ def betas_for_alpha_bar(num_diffusion_timesteps, alpha_bar, max_beta=0.999):
         t2 = (i + 1) / num_diffusion_timesteps
         betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
     return np.array(betas)
+
+def generate_simplex_noise(
+        Simplex_instance, x, t, random_param=False, octave=6, persistence=0.8, frequency=64,
+        in_channels=1
+        ):
+    noise = torch.empty(x.shape).to(x.device)
+    for i in range(in_channels):
+        Simplex_instance.newSeed()
+        if random_param:
+            param = random.choice(
+                    [(2, 0.6, 16), (6, 0.6, 32), (7, 0.7, 32), (10, 0.8, 64), (5, 0.8, 16), (4, 0.6, 16), (1, 0.6, 64),
+                     (7, 0.8, 128), (6, 0.9, 64), (2, 0.85, 128), (2, 0.85, 64), (2, 0.85, 32), (2, 0.85, 16),
+                     (2, 0.85, 8),
+                     (2, 0.85, 4), (2, 0.85, 2), (1, 0.85, 128), (1, 0.85, 64), (1, 0.85, 32), (1, 0.85, 16),
+                     (1, 0.85, 8),
+                     (1, 0.85, 4), (1, 0.85, 2), ]
+                    )
+            # 2D octaves seem to introduce directional artifacts in the top left
+            noise[:, i, ...] = torch.unsqueeze(
+                    torch.from_numpy(
+                            # Simplex_instance.rand_2d_octaves(
+                            #         x.shape[-2:], param[0], param[1],
+                            #         param[2]
+                            #         )
+                            Simplex_instance.rand_3d_fixed_T_octaves(
+                                    x.shape[-2:], t.detach().cpu().numpy(), param[0], param[1],
+                                    param[2]
+                                    )
+                            ).to(x.device), 0
+                    ).repeat(x.shape[0], 1, 1, 1)
+        noise[:, i, ...] = torch.unsqueeze(
+                torch.from_numpy(
+                        # Simplex_instance.rand_2d_octaves(
+                        #         x.shape[-2:], octave,
+                        #         persistence, frequency
+                        #         )
+                        Simplex_instance.rand_3d_fixed_T_octaves(
+                                x.shape[-2:], t.detach().cpu().numpy(), octave,
+                                persistence, frequency
+                                )
+                        ).to(x.device), 0
+                ).repeat(x.shape[0], 1, 1, 1)
+    return noise
 
 
 class ModelMeanType(enum.Enum):
@@ -149,7 +193,7 @@ class GaussianDiffusion:
         self.model_var_type = model_var_type
         self.loss_type = loss_type
         self.rescale_timesteps = rescale_timesteps
-
+        self.simplex = Simplex_CLASS()
         # Use float64 for accuracy.
         betas = np.array(betas, dtype=np.float64)
         self.betas = betas
@@ -219,7 +263,7 @@ class GaussianDiffusion:
         :return: A noisy version of x_start.
         """
         if noise is None:
-            noise = th.randn_like(x_start)
+            noise = generate_simplex_noise(self.simplex, x_start, t, False, in_channels=x_start.shape[1]).float()
         assert noise.shape == x_start.shape
         return (
                 _extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
@@ -521,7 +565,7 @@ class GaussianDiffusion:
             denoised_fn=denoised_fn,
             model_kwargs=model_kwargs,
         )
-        noise = th.randn_like(x[:, :4, ...])
+        noise = generate_simplex_noise(self.simplex, x, t, False, in_channels=x.shape[1]).float()
         nonzero_mask = (
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
         )  # no noise when t == 0
@@ -561,7 +605,8 @@ class GaussianDiffusion:
         org=img[0].to(device)
         img=img[0].to(device)
         indices = list(range(t))[::-1]
-        noise = th.randn_like(img[:, :4, ...]).to(device)
+        noise = generate_simplex_noise(self.simplex, img, t, False, in_channels=img.shape[1]).float()
+
         x_noisy = self.q_sample(x_start=img[:, :4, ...], t=t, noise=noise).to(device)
         x_noisy = torch.cat((x_noisy, img[:, 4:, ...]), dim=1)
         
@@ -1055,7 +1100,8 @@ class GaussianDiffusion:
         if model_kwargs is None:
             model_kwargs = {}
         if noise is None:
-            noise = th.randn_like(x_start)
+            noise = generate_simplex_noise(self.simplex, x_start, t, False, in_channels=x_start.shape[1]).float()
+
         x_t = self.q_sample(x_start, t, noise=noise)
 
         terms = {}
@@ -1163,7 +1209,7 @@ class GaussianDiffusion:
         print('numstept',self.num_timesteps )
         for t in list(range(self.num_timesteps))[::-1]:
             t_batch = th.tensor([t] * batch_size, device=device)
-            noise = th.randn_like(x_start)
+            noise = generate_simplex_noise(self.simplex, x_start, t, False, in_channels=x_start.shape[1]).float()
             x_t = self.q_sample(x_start=x_start, t=t_batch, noise=noise)
 #             viz.image(visualize(x_t[0, ...]), opts=dict(caption="xt"))
 
