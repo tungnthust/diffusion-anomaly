@@ -40,7 +40,8 @@ class BRATSDataset(torch.utils.data.Dataset):
             self.datapaths = meta_data_df[meta_data_df['volume'].isin(volume_ids)]['path'].values
         else:
             self.datapaths = meta_data_df[meta_data_df['volume'].isin(volume_ids) & meta_data_df['label'] == 1]['path'].values
-            
+        print(f'Number of {mode} data: {len(self.datapaths)}')
+        
     def __getitem__(self, idx):
         data = np.load(self.datapaths[idx])
         image = data['image']
