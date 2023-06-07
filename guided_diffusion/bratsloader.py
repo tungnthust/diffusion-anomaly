@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 import pickle
+import pandas as pd
 
 def normalize(image):
     """Basic min max scaler.
@@ -28,13 +29,18 @@ def irm_min_max_preprocess(image, low_perc=1, high_perc=99):
     return image
 
 class BRATSDataset(torch.utils.data.Dataset):
-    def __init__(self, directory, mode="train", test_flag=False):
+    def __init__(self, mode="train", fold=1, test_flag=False):
         
         super().__init__()
         self.datapaths = []
-        with open(f'/kaggle/working/diffusion-anomaly/data/brats/{mode}_brats20_datapaths.pickle', 'rb') as fp:
-            self.datapaths = pickle.load(fp)
-
+        data_split = np.load('/kaggle/working/diffusion-anomaly/data/brats/data_split.npz')
+        meta_data_df = pd.read_csv('/kaggle/working/diffusion-anomaly/data/brats/meta_data.csv')
+        volume_ids = data_split[f'{mode}_folds'][f'fold_{fold}']
+        if not test_flag:
+            self.datapaths = meta_data_df[meta_data_df['volume'].isin(volume_ids)]['path'].values
+        else:
+            self.datapaths = meta_data_df[meta_data_df['volume'].isin(volume_ids) & meta_data_df['label'] == 1]['path'].values
+            
     def __getitem__(self, idx):
         data = np.load(self.datapaths[idx])
         image = data['image']
