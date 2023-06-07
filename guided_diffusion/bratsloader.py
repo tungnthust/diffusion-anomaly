@@ -33,7 +33,7 @@ class BRATSDataset(torch.utils.data.Dataset):
         
         super().__init__()
         self.datapaths = []
-        data_split = np.load('/kaggle/working/diffusion-anomaly/data/brats/data_split.npz')
+        data_split = np.load('/kaggle/working/diffusion-anomaly/data/brats/data_split.npz', allow_pickle=True)
         meta_data_df = pd.read_csv('/kaggle/working/diffusion-anomaly/data/brats/meta_data.csv')
         volume_ids = data_split[f'{mode}_folds'][f'fold_{fold}']
         if not test_flag:
@@ -41,7 +41,7 @@ class BRATSDataset(torch.utils.data.Dataset):
         else:
             self.datapaths = meta_data_df[meta_data_df['volume'].isin(volume_ids) & meta_data_df['label'] == 1]['path'].values
         print(f'Number of {mode} data: {len(self.datapaths)}')
-        
+
     def __getitem__(self, idx):
         data = np.load(self.datapaths[idx])
         image = data['image']
