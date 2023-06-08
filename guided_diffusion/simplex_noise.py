@@ -83,13 +83,14 @@ class Simplex_CLASS:
         :return: Fractal noise sample with n lots of 2D images
         """
         assert len(shape) == 2
-        noise = np.zeros((5, *shape))
+        noise = np.zeros((1, *shape))
         y, x = [np.arange(0, end) for end in shape]
         amplitude = 1
         for _ in range(octaves):
             noise += amplitude * self.noise3array(x / frequency, y / frequency, T / frequency)
             frequency /= 2
             amplitude *= persistence
+        print('AAAAA', noise.shape)
         return noise
 
 
