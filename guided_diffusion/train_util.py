@@ -214,7 +214,7 @@ class TrainLoop:
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
 
             bbox = th.zeros([micro.shape[0], 4],dtype=int)
-            bboxes = self.boxes.sample_grid(micro)
+            bboxes = self.box_sampler.sample_grid(micro)
             ind = th.randint(0,bboxes.shape[1],(micro.shape[0],))
             for j in range(micro.shape[0]):
                 bbox[j] = bboxes[j, ind[j]]
