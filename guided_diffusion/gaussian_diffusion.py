@@ -111,8 +111,7 @@ def generate_simplex_noise(
                                     )
                             ).to(x.device), 0
                     ).repeat(x.shape[0], 1, 1, 1)
-        noise[:, i, ...] = torch.unsqueeze(
-                torch.from_numpy(
+        noise[:, i, ...] = torch.from_numpy(
                         Simplex_instance.rand_2d_octaves(
                                 x.shape[-2:], octave,
                                 persistence, frequency
@@ -121,8 +120,7 @@ def generate_simplex_noise(
                         #         x.shape[-2:], t.detach().cpu().numpy(), octave,
                         #         persistence, frequency
                         #         )
-                        ).to(x.device), 0
-                ).repeat(x.shape[0], 1, 1)
+                        ).to(x.device)
     return noise
 
 
