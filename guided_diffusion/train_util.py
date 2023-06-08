@@ -7,7 +7,7 @@ import torch as th
 import torch.distributed as dist
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import AdamW
-
+from .patch_sampling import BoxSampler
 from . import dist_util, logger
 from .fp16_util import MixedPrecisionTrainer
 from .nn import update_ema
@@ -83,6 +83,8 @@ class TrainLoop:
         self.opt = AdamW(
             self.mp_trainer.master_params, lr=self.lr, weight_decay=self.weight_decay
         )
+
+        self.box_sampler = BoxSampler()
         if self.resume_step:
             self._load_optimizer_state()
             # Model was resumed, either due to a restart or a checkpoint
@@ -211,11 +213,19 @@ class TrainLoop:
             last_batch = (i + self.microbatch) >= batch.shape[0]
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
 
+            bbox = th.zeros([micro.shape[0], 4],dtype=int)
+            bboxes = self.boxes.sample_grid(micro)
+            ind = th.randint(0,bboxes.shape[1],(micro.shape[0],))
+            for j in range(micro.shape[0]):
+                bbox[j] = bboxes[j, ind[j]]
+            bbox = bbox.unsqueeze(-1)
+    
             compute_losses = functools.partial(
                 self.diffusion.training_losses,
                 self.ddp_model,
                 micro,
                 t,
+                bbox,
                 model_kwargs=micro_cond,
             )
 

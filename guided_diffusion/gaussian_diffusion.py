@@ -1085,7 +1085,7 @@ class GaussianDiffusion:
 
 
    # def training_losses(self, model, x_start, t, model_kwargs=None, noise=None):
-    def training_losses(self, model,  x_start, t, model_kwargs=None, noise=None):
+    def training_losses(self, model,  x_start, t, bbox, model_kwargs=None, noise=None):
         """
         Compute training losses for a single timestep.
         :param model: the model to evaluate loss on.
@@ -1104,8 +1104,18 @@ class GaussianDiffusion:
 
         x_t = self.q_sample(x_start, t, noise=noise)
 
-        terms = {}
+        x_patch = []
+        for i in range(x_t.shape[0]):
+            x_patch.append(x_t[i, :, bbox[i,1]:bbox[i,3], bbox[i,0]:bbox[i,2]]) # noise patch
+        x_t = x_start.clone()
+        for i in range(x_t.shape[0]):
+            x_t[i, :, bbox[i,1]:bbox[i,3], bbox[i,0]:bbox[i,2]] = x_patch[i]
 
+        terms = {}
+        noise_patch = torch.zeros_like(noise)
+        for i in range(noise.shape[0]):
+            noise_patch[i, :, bbox[i,1]:bbox[i,3], bbox[i,0]:bbox[i,2]] = noise[i, :, bbox[i,1]:bbox[i,3], bbox[i,0]:bbox[i,2]]
+        target_noise = noise_patch
         if self.loss_type == LossType.KL or self.loss_type == LossType.RESCALED_KL:
             terms["loss"] = self._vb_terms_bpd(
                 model=model,
@@ -1118,7 +1128,17 @@ class GaussianDiffusion:
             if self.loss_type == LossType.RESCALED_KL:
                 terms["loss"] *= self.num_timesteps
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
+
             model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
+            if self.model_mean_type == ModelMeanType.START_X:
+                out = x_start.clone()
+            elif self.model_mean_type == ModelMeanType.EPSILON:
+                out = torch.zeros_like(noise)
+            if out.shape[1] == 2:
+                out = out[:,0].unsqueeze(1)
+            for i in range(out.shape[0]):
+                out[i, :, bbox[i,1]:bbox[i,3], bbox[i,0]:bbox[i,2]] = model_output[i, :, bbox[i,1]:bbox[i,3], bbox[i,0]:bbox[i,2]]
+            model_output = out
 
             if self.model_var_type in [
                 ModelVarType.LEARNED,
@@ -1147,7 +1167,7 @@ class GaussianDiffusion:
                     x_start=x_start, x_t=x_t, t=t
                 )[0],
                 ModelMeanType.START_X: x_start,
-                ModelMeanType.EPSILON: noise,
+                ModelMeanType.EPSILON: target_noise,
             }[self.model_mean_type]
             assert model_output.shape == target.shape == x_start.shape
             terms["mse"] = mean_flat((target - model_output) ** 2)
