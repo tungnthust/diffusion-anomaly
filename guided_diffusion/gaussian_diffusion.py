@@ -122,7 +122,7 @@ def generate_simplex_noise(
                         #         persistence, frequency
                         #         )
                         ).to(x.device), 0
-                ).repeat(x.shape[0], 1, 1, 1)
+                ).repeat(x.shape[0], 1, 1)
     return noise
 
 
