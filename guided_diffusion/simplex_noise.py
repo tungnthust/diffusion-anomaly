@@ -90,7 +90,6 @@ class Simplex_CLASS:
             noise += amplitude * self.noise3array(x / frequency, y / frequency, T / frequency)
             frequency /= 2
             amplitude *= persistence
-        print('AAAAA', noise.shape)
         return noise
 
 
