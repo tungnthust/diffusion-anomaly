@@ -91,6 +91,7 @@ def create_argparser():
         fp16_scale_growth=1e-3,
         dataset='brats',
         max_L=1000,
+        predict_xstart=True,
         fold=1
     )
     defaults.update(model_and_diffusion_defaults())
