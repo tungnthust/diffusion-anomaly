@@ -39,7 +39,7 @@ def main():
 
     if args.dataset == 'brats':
         print("Training on BRATS-20 dataset")
-        ds = BRATSDataset(args.data_dir, mode="train", test_flag=False)
+        ds = BRATSDataset(mode="train", fold=args.fold, test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
@@ -49,7 +49,7 @@ def main():
     elif args.dataset == 'lits':
         print("Training on CheXpert dataset")
 
-        ds = LiTSDataset(args.data_dir, mode="train", test_flag=False)
+        ds = LiTSDataset(mode="train", fold=args.fold, test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
@@ -93,7 +93,8 @@ def create_argparser():
         use_fp16=False,
         fp16_scale_growth=1e-3,
         dataset='brats',
-        max_L=1000
+        max_L=1000,
+        fold=1
     )
     defaults.update(model_and_diffusion_defaults())
     parser = argparse.ArgumentParser()

@@ -89,7 +89,7 @@ def main():
 
     if args.dataset == 'brats':
         print("Training on BRATS-20 dataset")
-        ds = BRATSDataset(args.data_dir, mode="train", test_flag=False)
+        ds = BRATSDataset(mode="train", fold=args.fold, test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
@@ -99,7 +99,7 @@ def main():
     elif args.dataset == 'lits':
         print("Training on LiTS dataset")
 
-        ds = LiTSDataset(args.data_dir, mode="train", test_flag=False)
+        ds = LiTSDataset(mode="train", fold=args.fold, test_flag=False)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
@@ -107,7 +107,7 @@ def main():
         data = iter(datal)
 
     try:
-        val_ds = LiTSDataset(args.data_dir, mode="val", test_flag=False)
+        val_ds = LiTSDataset(mode="test", fold=args.fold, test_flag=False)
         val_datal = th.utils.data.DataLoader(
             val_ds,
             batch_size=args.batch_size,
@@ -322,6 +322,7 @@ def create_argparser():
         save_interval=10000,
         dataset='brats',
         max_L=1000,
+        fold=1
     )
     defaults.update(classifier_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
