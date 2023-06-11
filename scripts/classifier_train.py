@@ -93,7 +93,7 @@ def main():
 
     if args.dataset == 'brats':
         print("Training on BRATS-20 dataset")
-        ds = BRATSDataset(mode="train", fold=args.fold, test_flag=False, transforms=data_transform)
+        ds = BRATSDataset(mode="train", fold=args.fold, test_flag=False, transforms=None)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
