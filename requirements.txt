@@ -16,6 +16,7 @@ kiwisolver
 linecache2
 matplotlib
 MedPy
+monai
 networkx
 nibabel
 numpy
