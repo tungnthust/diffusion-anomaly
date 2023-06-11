@@ -270,6 +270,7 @@ def split_microbatches(microbatch, *args):
 def create_argparser():
     defaults = dict(
         data_dir="",
+        image_size="",
         val_data_dir="",
         iterations=150000,
         lr=1e-4,
@@ -280,7 +281,8 @@ def create_argparser():
         resume_checkpoint="",
         log_interval=10,
         eval_interval=1000,
-        save_interval=10000
+        save_interval=10000,
+        fold=1
     )
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)
