@@ -187,8 +187,8 @@ def main():
           
             logits = model(sub_batch, timesteps=sub_t)
          
-            # loss = F.cross_entropy(logits, sub_labels, reduction="none")
-            loss = focal_loss(logits, sub_labels)
+            loss = F.cross_entropy(logits, sub_labels, reduction="none")
+            # loss = focal_loss(logits, sub_labels)
 
             losses = {}
             losses[f"{prefix}_loss"] = loss.detach()
