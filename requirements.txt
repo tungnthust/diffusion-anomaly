@@ -4,6 +4,7 @@ certifi
 charset-normalizer
 cycler
 dicom2nifti
+einops
 filelock
 fonttools
 future
