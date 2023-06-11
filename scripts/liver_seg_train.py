@@ -43,6 +43,7 @@ def main():
     model = SwinUNETR(img_size=(args.image_size, args.image_size), 
                       in_channels=1, 
                       out_channels=1, 
+                      feature_size=args.feature_size,
                       use_checkpoint=True, 
                       spatial_dims=2)
     model.to(dist_util.dev())
@@ -135,7 +136,7 @@ def main():
 
                 losses.append(loss.mean().item())
                 dice_scores.append(dice_score(logits, sub_liver_masks))
-                
+
         print(f"Validation dataset size: {data_size}")
 
         return np.mean(losses), np.mean(dice_scores)
@@ -277,8 +278,9 @@ def dice_score(logits, targs):
 
 def create_argparser():
     defaults = dict(
-        data_dir="",
         image_size=256,
+        feature_size=128,
+        data_dir="",
         val_data_dir="",
         iterations=150000,
         lr=1e-4,
