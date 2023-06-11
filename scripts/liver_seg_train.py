@@ -30,7 +30,7 @@ from guided_diffusion.script_util import (
 )
 from guided_diffusion.train_util import parse_resume_step_from_filename, log_loss_dict
 from monai.networks.nets.swin_unetr import SwinUNETR
-from monai.losses import DiceLoss
+from monai.losses import DiceCELoss
 
 def main():
     args = create_argparser().parse_args()
@@ -78,7 +78,7 @@ def main():
         
     logger.log("creating data loader...")
 
-    dice_loss = DiceLoss(to_onehot_y=False, sigmoid=True)
+    dice_loss = DiceCELoss(to_onehot_y=False, sigmoid=True)
 
     print("Training on LiTS dataset")
 
@@ -118,18 +118,18 @@ def main():
         losses = []
         data_size = 0
         for data in data_loader:
-            batch, _, _, liver_mask, _ = data
+            batch, _, _, liver_masks, _ = data
             data_size += batch.shape[0]
             batch = batch.to(dist_util.dev())
-            labels= labels.to(dist_util.dev())
+            liver_masks = liver_masks.to(dist_util.dev())
             t = th.zeros(batch.shape[0], dtype=th.long, device=dist_util.dev())
-            for i, (sub_batch, sub_labels, sub_t) in enumerate(
-                split_microbatches(args.microbatch, batch, labels, t)
+            for i, (sub_batch, sub_liver_masks) in enumerate(
+                split_microbatches(args.microbatch, batch, liver_masks)
             ):
             
-                logits = model(sub_batch, timesteps=sub_t)
+                logits = model(sub_batch)
             
-                loss = dice_loss(logits, liver_mask)
+                loss = dice_loss(logits, sub_liver_masks)
                 loss = loss.mean()
 
                 losses.append(loss.mean().item())
