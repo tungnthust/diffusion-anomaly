@@ -134,7 +134,8 @@ def main():
                 loss = loss.mean()
 
                 losses.append(loss.mean().item())
-                dice_scores.append(loss.mean().item())
+                dice_scores.append(dice_score(logits, sub_liver_masks))
+                
         print(f"Validation dataset size: {data_size}")
 
         return np.mean(losses), np.mean(dice_scores)
@@ -161,6 +162,8 @@ def main():
 
             losses = {}
             losses[f"{prefix}_loss"] = loss.detach()
+            losses[f"{prefix}_dice"] = dice_score(logits, sub_liver_masks)
+
             # losses[f"{prefix}_acc@2"] = compute_top_k(
             #     logits, sub_labels, k=2, reduction="none"
             # )
@@ -267,6 +270,10 @@ def split_microbatches(microbatch, *args):
         for i in range(0, bs, microbatch):
             yield tuple(x[i : i + microbatch] if x is not None else None for x in args)
 
+def dice_score(logits, targs):
+    pred = th.sigmoid(logits)
+    pred = (pred > 0.5).float()
+    return 2. * (pred*targs).sum() / (pred+targs).sum()
 
 def create_argparser():
     defaults = dict(
@@ -277,6 +284,7 @@ def create_argparser():
         lr=1e-4,
         weight_decay=0.0,
         anneal_lr=False,
+        use_fp16=False,
         batch_size=4,
         microbatch=-1,
         resume_checkpoint="",

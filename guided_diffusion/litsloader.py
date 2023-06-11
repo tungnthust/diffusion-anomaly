@@ -51,6 +51,7 @@ class LiTSDataset(torch.utils.data.Dataset):
         image[0] = normalize(np.clip(image[0], -21, 189))
         tumor_mask = data['tumor_mask']
         liver_mask = data['liver_mask']
+        liver_mask = np.expand_dims(liver_mask, axis=0)
         if np.sum(tumor_mask) > 0:
             label = 1
         else:
