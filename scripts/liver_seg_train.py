@@ -271,7 +271,7 @@ def split_microbatches(microbatch, *args):
 def create_argparser():
     defaults = dict(
         data_dir="",
-        image_size="",
+        image_size=256,
         val_data_dir="",
         iterations=150000,
         lr=1e-4,
