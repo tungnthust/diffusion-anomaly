@@ -29,10 +29,11 @@ def irm_min_max_preprocess(image, low_perc=1, high_perc=99):
     return image
 
 class BRATSDataset(torch.utils.data.Dataset):
-    def __init__(self, mode="train", fold=1, test_flag=False):
+    def __init__(self, mode="train", fold=1, test_flag=False, transforms=None):
         
         super().__init__()
         self.datapaths = []
+        self.transforms = transforms
         data_split = np.load('/kaggle/working/diffusion-anomaly/data/brats/data_split.npz', allow_pickle=True)
         meta_data_df = pd.read_csv('/kaggle/working/diffusion-anomaly/data/brats/meta_data.csv')
         volume_ids = data_split[f'{mode}_folds'].item()[f'fold_{fold}']
@@ -56,6 +57,8 @@ class BRATSDataset(torch.utils.data.Dataset):
         label = 1 if np.sum(mask) > 0 else 0
         cond = {}
         cond['y'] = label
+        if self.transforms:
+            padding_image = self.transforms(torch.Tensor(padding_image))
         return np.float32(padding_image), cond, label, np.float32(padding_mask)
 
     def __len__(self):

@@ -23,7 +23,7 @@ import numpy as np
 # loss_window = viz.line( Y=th.zeros((1)).cpu(), X=th.zeros((1)).cpu(), opts=dict(xlabel='epoch', ylabel='Loss', title='classification loss'))
 # val_window = viz.line( Y=th.zeros((1)).cpu(), X=th.zeros((1)).cpu(), opts=dict(xlabel='epoch', ylabel='Loss', title='validation loss'))
 # acc_window= viz.line( Y=th.zeros((1)).cpu(), X=th.zeros((1)).cpu(), opts=dict(xlabel='epoch', ylabel='acc', title='accuracy'))
-
+from torchvision import transforms
 from guided_diffusion import dist_util, logger
 from guided_diffusion.fp16_util import MixedPrecisionTrainer
 from guided_diffusion.image_datasets import load_data
@@ -75,6 +75,11 @@ def main():
         model=model, use_fp16=args.classifier_use_fp16, initial_lg_loss_scale=16.0
     )
 
+    data_transform = transforms.RandomApply([
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomVerticalFlip(p=0.5)
+    ], p=0.5)
+
     model = DDP(
         model,
         device_ids=[dist_util.dev()],
@@ -88,7 +93,7 @@ def main():
 
     if args.dataset == 'brats':
         print("Training on BRATS-20 dataset")
-        ds = BRATSDataset(mode="train", fold=args.fold, test_flag=False)
+        ds = BRATSDataset(mode="train", fold=args.fold, test_flag=False, transforms=data_transform)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
