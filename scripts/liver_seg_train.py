@@ -138,7 +138,7 @@ def main():
 
         print(f"Validation dataset size: {data_size}")
 
-        return th.mean(losses), np.mean(dice_scores)
+        return np.mean(losses), np.mean(dice_scores)
     
     def forward_backward_log(data_load, data_loader, prefix="train"):
         try:
