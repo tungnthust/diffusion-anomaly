@@ -135,10 +135,13 @@ def main():
         losses = []
         data_size = 0
         for data in data_loader:
-            batch, _, labels, _ = data
+            batch, _, labels, liver_masks, _ = data
             data_size += batch.shape[0]
             batch = batch.to(dist_util.dev())
             labels= labels.to(dist_util.dev())
+            liver_masks = liver_masks.to(dist_util.dev())
+            batch = batch * liver_masks
+
             t = th.zeros(batch.shape[0], dtype=th.long, device=dist_util.dev())
             for i, (sub_batch, sub_labels, sub_t) in enumerate(
                 split_microbatches(args.microbatch, batch, labels, t)
@@ -160,14 +163,17 @@ def main():
     
     def forward_backward_log(data_load, data_loader, prefix="train"):
         try:
-            batch, _, labels, _ = next(data_loader)
+            batch, _, labels, liver_masks, _ = next(data_loader)
         except:
             data_loader = iter(data_load)
-            batch, _, labels, _ = next(data_loader)
+            batch, _, labels, liver_masks, _ = next(data_loader)
 
         # print('labels', labels)
         batch = batch.to(dist_util.dev())
         labels= labels.to(dist_util.dev())
+        liver_masks = liver_masks.to(dist_util.dev())
+        batch = batch * liver_masks
+
         if args.noised:
             t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
             # print(f"{prefix}: batch_shape: {batch.shape} - noise_levels: {t}")

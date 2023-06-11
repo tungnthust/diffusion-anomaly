@@ -7,7 +7,7 @@ import torch as th
 import torch.distributed as dist
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import AdamW
-
+import numpy as np
 from . import dist_util, logger
 from .fp16_util import MixedPrecisionTrainer
 from .nn import update_ema
@@ -167,11 +167,12 @@ class TrainLoop:
             or self.step + self.resume_step < self.lr_anneal_steps
         ):
             try:
-                batch, cond, label, _ = next(self.iterdatal)
+                batch, cond, label, liver_mask, _ = next(self.iterdatal)
             except:
                 self.iterdatal = iter(self.datal)
-                batch, cond, label, _ = next(self.iterdatal)
-
+                batch, cond, label, liver_mask, _ = next(self.iterdatal)
+                
+            batch = batch * liver_mask
             self.run_step(batch, cond)
 
             if self.step % self.log_interval == 0:

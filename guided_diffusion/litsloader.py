@@ -58,7 +58,6 @@ class LiTSDataset(torch.utils.data.Dataset):
             label = 0
         cond = {}
         cond['y'] = label
-        image = image * 2 - 1
         return np.float32(image), cond, label, np.float32(liver_mask), np.float32(tumor_mask)
 
     def __len__(self):
