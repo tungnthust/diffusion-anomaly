@@ -143,8 +143,8 @@ def main():
             data_size += batch.shape[0]
             batch = batch.to(dist_util.dev())
             labels= labels.to(dist_util.dev())
-            liver_masks = liver_masks.to(dist_util.dev())
-            batch = batch * liver_masks
+            # liver_masks = liver_masks.to(dist_util.dev())
+            # batch = batch * liver_masks
 
             t = th.zeros(batch.shape[0], dtype=th.long, device=dist_util.dev())
             for i, (sub_batch, sub_labels, sub_t) in enumerate(
@@ -175,8 +175,8 @@ def main():
         # print('labels', labels)
         batch = batch.to(dist_util.dev())
         labels= labels.to(dist_util.dev())
-        liver_masks = liver_masks.to(dist_util.dev())
-        batch = batch * liver_masks
+        # liver_masks = liver_masks.to(dist_util.dev())
+        # batch = batch * liver_masks
 
         if args.noised:
             t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
