@@ -124,7 +124,6 @@ def main():
             data_size += batch.shape[0]
             batch = batch.to(dist_util.dev())
             liver_masks = liver_masks.to(dist_util.dev())
-            t = th.zeros(batch.shape[0], dtype=th.long, device=dist_util.dev())
             for i, (sub_batch, sub_liver_masks) in enumerate(
                 split_microbatches(args.microbatch, batch, liver_masks)
             ):
@@ -134,12 +133,12 @@ def main():
                 loss = dice_loss(logits, sub_liver_masks)
                 loss = loss.mean()
 
-                losses.append(loss.mean().item())
-                dice_scores.append(dice_score(logits, sub_liver_masks))
+                losses.append(loss.mean().item().cpu())
+                dice_scores.append(dice_score(logits, sub_liver_masks).cpu())
 
         print(f"Validation dataset size: {data_size}")
 
-        return np.mean(losses), np.mean(dice_scores)
+        return np.mean(losses), th.mean(dice_scores)
     
     def forward_backward_log(data_load, data_loader, prefix="train"):
         try:
