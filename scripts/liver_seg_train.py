@@ -84,7 +84,7 @@ def main():
 
     print("Training on LiTS dataset")
 
-    ds = LiTSDataset(mode="train", fold=args.fold, test_flag=False)
+    ds = LiTSDataset(mode="train", fold=args.fold, test_flag=False, liver_seg=False)
     datal = th.utils.data.DataLoader(
         ds,
         batch_size=args.batch_size,
@@ -92,7 +92,7 @@ def main():
     data = iter(datal)
 
     try:
-        val_ds = LiTSDataset(mode="test", fold=args.fold, test_flag=False)
+        val_ds = LiTSDataset(mode="test", fold=args.fold, test_flag=False, liver_seg=False)
         val_datal = th.utils.data.DataLoader(
             val_ds,
             batch_size=args.batch_size,

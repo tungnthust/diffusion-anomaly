@@ -47,7 +47,7 @@ def main():
         # data = iter(datal)
 
     elif args.dataset == 'lits':
-        print("Training on CheXpert dataset")
+        print("Training on LiTS dataset")
 
         ds = LiTSDataset(mode="train", fold=args.fold, test_flag=False)
         datal = th.utils.data.DataLoader(
