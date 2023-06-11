@@ -39,6 +39,7 @@ def main():
     logger.configure()
 
     logger.log("creating model and diffusion...")
+    print(args)
     model = SwinUNETR(img_size=(args.image_size, args.image_size), 
                       in_channels=1, 
                       out_channels=1, 
