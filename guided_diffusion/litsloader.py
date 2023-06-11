@@ -60,8 +60,8 @@ class LiTSDataset(torch.utils.data.Dataset):
         cond = {}
         cond['y'] = label
         if self.transform:
-            image = self.transform(image)
-            liver_mask = self.transform(liver_mask)
+            image = self.transform(torch.Tensor(image))
+            liver_mask = self.transform(torch.Tensor(liver_mask))
         return np.float32(image), cond, label, np.float32(liver_mask), np.float32(tumor_mask)
 
     def __len__(self):
