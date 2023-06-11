@@ -87,7 +87,7 @@ def generate_simplex_noise(
         in_channels=1
         ):
     noise = torch.empty(x.shape).to(x.device)
-    for idx in x.shape[0]:
+    for idx in range(x.shape[0]):
         sub_x = x[idx].unsqueeze(0)
         sub_t = t[idx].unsqueeze(0)
         for i in range(in_channels):
