@@ -30,10 +30,11 @@ def irm_min_max_preprocess(image, low_perc=1, high_perc=99):
     return image
 
 class LiTSDataset(torch.utils.data.Dataset):
-    def __init__(self, mode="train", fold=1, test_flag=False):
+    def __init__(self, mode="train", fold=1, test_flag=False, transform=None):
         
         super().__init__()
         self.datapaths = []
+        self.transform = transform
         data_split = np.load('/kaggle/working/diffusion-anomaly/data/lits/data_split.npz', allow_pickle=True)
         meta_data_df = pd.read_csv('/kaggle/working/diffusion-anomaly/data/lits/meta_data.csv')
         volume_ids = data_split[f'{mode}_folds'].item()[f'fold_{fold}']
@@ -58,6 +59,9 @@ class LiTSDataset(torch.utils.data.Dataset):
             label = 0
         cond = {}
         cond['y'] = label
+        if self.transform:
+            image = self.transform(image)
+            liver_mask = self.transform(liver_mask)
         return np.float32(image), cond, label, np.float32(liver_mask), np.float32(tumor_mask)
 
     def __len__(self):
