@@ -200,6 +200,10 @@ def main():
         return losses
 
     correct=0; total=0
+
+    train_losses = []
+    train_dices = []
+
     for step in range(args.iterations - resume_step):
         logger.logkv("step", step + resume_step)
         logger.logkv(
@@ -212,7 +216,8 @@ def main():
         
         losses = forward_backward_log(datal, data)
 
-        
+        train_losses.append(losses["train_loss"].mean().item())
+        train_dices.append(losses["train_dice"].mean().item())
         mp_trainer.optimize(opt)
         if val_data is not None and not step % args.eval_interval:
             with th.no_grad():
@@ -221,6 +226,16 @@ def main():
                     forward_backward_log(val_datal, val_data, prefix="val")
                     val_loss, val_dice = validation_log(val_datal)
                     print(f"Validation loss: {val_loss} - Validation DICE: {val_dice}")
+                    result_dict = {'mean_train_loss': np.mean(train_losses),
+                                   'mean_train_dice': np.mean(train_dices),
+                                   'mean_val_loss': val_loss,
+                                   'mean_val_dice': val_dice}
+                    for key, value in result_dict.items():
+                        logger.logkv_mean(key, value)
+
+                    train_losses = []
+                    train_dices = []
+                        
                     model.train()
 
         if not step % args.log_interval:
