@@ -235,10 +235,11 @@ def main():
 
                     train_losses = []
                     train_dices = []
-                        
+
                     model.train()
 
         if not step % args.log_interval:
+            print(train_dices)
             print('step', step + resume_step)
             logger.dumpkvs()
         if (
