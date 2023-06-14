@@ -34,6 +34,11 @@ class BRATSDataset(torch.utils.data.Dataset):
         super().__init__()
         self.datapaths = []
         self.transforms = transforms
+        if self.transforms:
+            print("Transform for data augmentation.")
+        else:
+            print("No data augmentation")
+            
         data_split = np.load('/kaggle/working/diffusion-anomaly/data/brats/data_split.npz', allow_pickle=True)
         meta_data_df = pd.read_csv('/kaggle/working/diffusion-anomaly/data/brats/meta_data.csv')
         volume_ids = data_split[f'{mode}_folds'].item()[f'fold_{fold}']
