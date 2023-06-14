@@ -77,9 +77,10 @@ def main():
 
     data_transform = transforms.RandomApply([
                 transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomVerticalFlip(p=0.5)
+                transforms.RandomVerticalFlip(p=0.5),
+                transforms.RandomRotation(90)
     ], p=0.5)
-
+    transform = data_transform if args.transform else None
     model = DDP(
         model,
         device_ids=[dist_util.dev()],
@@ -93,7 +94,7 @@ def main():
 
     if args.dataset == 'brats':
         print("Training on BRATS-20 dataset")
-        ds = BRATSDataset(mode="train", fold=args.fold, test_flag=False, transforms=None)
+        ds = BRATSDataset(mode="train", fold=args.fold, test_flag=False, transforms=transform)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,
@@ -318,7 +319,8 @@ def create_argparser():
         save_interval=10000,
         dataset='brats',
         max_L=1000,
-        fold=1
+        fold=1,
+        transform=False,
     )
     defaults.update(classifier_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
