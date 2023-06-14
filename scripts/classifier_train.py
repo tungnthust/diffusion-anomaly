@@ -105,7 +105,7 @@ def main():
     elif args.dataset == 'lits':
         print("Training on LiTS dataset")
 
-        ds = LiTSDataset(mode="train", fold=args.fold, test_flag=False, transform=data_transform)
+        ds = LiTSDataset(mode="train", fold=args.fold, test_flag=False, transform=transform)
         datal = th.utils.data.DataLoader(
             ds,
             batch_size=args.batch_size,

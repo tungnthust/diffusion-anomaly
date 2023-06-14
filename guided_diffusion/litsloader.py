@@ -35,6 +35,11 @@ class LiTSDataset(torch.utils.data.Dataset):
         super().__init__()
         self.datapaths = []
         self.transform = transform
+        if self.transforms:
+            print("Transform for data augmentation.")
+        else:
+            print("No data augmentation")
+            
         self.liver_seg = liver_seg
         data_split = np.load('/kaggle/working/diffusion-anomaly/data/lits/data_split.npz', allow_pickle=True)
         meta_data_df = pd.read_csv('/kaggle/working/diffusion-anomaly/data/lits/meta_data.csv')
