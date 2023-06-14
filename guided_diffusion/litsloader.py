@@ -35,7 +35,7 @@ class LiTSDataset(torch.utils.data.Dataset):
         super().__init__()
         self.datapaths = []
         self.transform = transform
-        if self.transforms:
+        if self.transform:
             print("Transform for data augmentation.")
         else:
             print("No data augmentation")
