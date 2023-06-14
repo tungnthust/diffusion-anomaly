@@ -25,6 +25,7 @@ opencv-python
 packaging
 pandas
 Pillow
+piq
 pycryptodomex
 pydicom
 pyparsing
