@@ -91,7 +91,8 @@ def create_argparser():
         fp16_scale_growth=1e-3,
         dataset='brats',
         max_L=1000,
-        cond_dropout_rate=0.35
+        cond_dropout_rate=0.35,
+        fold=1
     )
     defaults.update(model_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
